@@ -6,13 +6,24 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  FlatList,
+  TextInput,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Feather } from '@expo/vector-icons';
 import { Fonts } from '../constants/fonts';
 import { Colors } from '../constants/colors';
+import { SubjectsStackParamList } from '../navigation/SubjectsStackNavigator';
+import { db, auth } from '../lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_MARGIN = 16;
+const CARD_WIDTH = (SCREEN_WIDTH - (CARD_MARGIN * 3)) / 2;
 
 type Subject = {
   id: string;
@@ -25,136 +36,143 @@ type Subject = {
   examDaysRemaining?: number;
   color: string;
   bgColor: string;
+  selectedColor?: string;
+  selectedIcon?: string;
+  coverPhotoUrl?: string;
 };
 
-const SubjectsScreen: React.FC = () => {
-  const [isIntern] = useState(false); // This should come from user context/state
-  const [searchQuery, setSearchQuery] = useState('');
+type SubjectsScreenNavigationProp = StackNavigationProp<SubjectsStackParamList, 'SubjectsList'>;
 
-  // Mock data - replace with Firebase data later
-  const subjects: Subject[] = [
-    {
-      id: '1',
-      name: 'Anatomy',
-      description: 'Human anatomy and physiology',
-      progress: 75,
-      notesCount: 24,
-      studySessionsCount: 18,
-      examDate: '2024-12-20',
-      examDaysRemaining: 33,
-      color: Colors.roseRed,
-      bgColor: Colors.roseLight,
-    },
-    {
-      id: '2',
-      name: 'Surgery',
-      description: 'General and specialized surgery',
-      progress: 45,
-      notesCount: 12,
-      studySessionsCount: 8,
-      examDate: '2024-12-25',
-      examDaysRemaining: 38,
-      color: Colors.errorRed,
-      bgColor: '#FEF2F2',
-    },
-    {
-      id: '3',
-      name: 'Physiology',
-      description: 'Human body functions',
-      progress: 60,
-      notesCount: 18,
-      studySessionsCount: 12,
-      color: Colors.successGreen,
-      bgColor: '#ECFDF5',
-    },
-    {
-      id: '4',
-      name: 'Pathology',
-      description: 'Disease mechanisms and diagnosis',
-      progress: 30,
-      notesCount: 8,
-      studySessionsCount: 5,
-      examDate: '2025-01-15',
-      examDaysRemaining: 59,
-      color: Colors.warningAmber,
-      bgColor: '#FFFBEB',
-    },
-  ];
+const SubjectsScreen: React.FC = () => {
+  const navigation = useNavigation<SubjectsScreenNavigationProp>();
+  const [isIntern] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchSubjects = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const subjectsQuery = query(
+        collection(db, 'subjects'),
+        where('userId', '==', user.uid)
+      );
+
+      const querySnapshot = await getDocs(subjectsQuery);
+      const fetchedSubjects: Subject[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        fetchedSubjects.push({
+          id: doc.id,
+          name: data.name || '',
+          description: data.description || '',
+          progress: data.progress || 0,
+          notesCount: data.notesCount || 0,
+          studySessionsCount: data.studySessionsCount || 0,
+          examDate: data.examDate || undefined,
+          examDaysRemaining: data.examDaysRemaining || undefined,
+          color: data.selectedColor || data.color || Colors.roseRed,
+          bgColor: data.bgColor || Colors.roseLight,
+          selectedColor: data.selectedColor || data.color || Colors.roseRed,
+          selectedIcon: data.selectedIcon || 'folder',
+          coverPhotoUrl: data.coverPhotoUrl || undefined,
+        });
+      });
+
+      fetchedSubjects.sort((a, b) => a.name.localeCompare(b.name));
+      setSubjects(fetchedSubjects);
+    } catch (error: any) {
+      console.error('Error fetching subjects:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchSubjects();
+    }, [])
+  );
 
   const filteredSubjects = subjects.filter((subject) =>
     subject.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const renderSubjectCard = (subject: Subject) => (
-    <TouchableOpacity key={subject.id} style={styles.subjectCard} activeOpacity={0.7}>
-      <View style={styles.subjectHeader}>
-        <View style={[styles.subjectIconContainer, { backgroundColor: subject.bgColor }]}>
-          <Text style={[styles.subjectInitial, { color: subject.color }]}>
-            {subject.name.charAt(0)}
-          </Text>
+  const renderSubjectCard = ({ item }: { item: Subject }) => (
+    <TouchableOpacity
+      style={styles.subjectCard}
+      activeOpacity={0.7}
+      onPress={() => {
+        navigation.navigate('SubjectDetails', {
+          subjectId: item.id,
+          subjectName: item.name,
+          subjectColor: item.selectedColor || item.color,
+          subjectBgColor: item.bgColor,
+        });
+      }}
+      onLongPress={() => {
+        navigation.navigate('AddSubject', {
+          subjectId: item.id,
+          subjectName: item.name,
+          subjectColor: item.selectedColor || item.color,
+          subjectBgColor: item.bgColor,
+          subjectIcon: item.selectedIcon || 'folder',
+          subjectExamDate: item.examDate,
+          subjectCoverPhotoUrl: item.coverPhotoUrl,
+        });
+      }}
+    >
+      {item.coverPhotoUrl ? (
+        <View style={styles.coverPhotoWrapper}>
+          <Image source={{ uri: item.coverPhotoUrl }} style={styles.coverPhoto} />
+          <View style={styles.coverOverlay} />
         </View>
-        <View style={styles.subjectInfo}>
-          <Text style={styles.subjectName}>{subject.name}</Text>
-          {subject.description && (
-            <Text style={styles.subjectDescription} numberOfLines={1}>
-              {subject.description}
-            </Text>
-          )}
-        </View>
-        <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
-          <Feather name="more-vertical" size={20} color="#9CA3AF" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Progress Bar */}
-      <View style={styles.progressSection}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.progressLabel}>Progress</Text>
-          <Text style={styles.progressValue}>{subject.progress}%</Text>
-        </View>
-        <View style={styles.progressBarContainer}>
-          <View style={[styles.progressBar, { width: `${subject.progress}%`, backgroundColor: subject.color }]} />
-        </View>
-      </View>
-
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Feather name="file-text" size={16} color="#6B7280" />
-          <Text style={styles.statText}>{subject.notesCount} Notes</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Feather name="book-open" size={16} color="#6B7280" />
-          <Text style={styles.statText}>{subject.studySessionsCount} Sessions</Text>
-        </View>
-      </View>
-
-      {/* Exam Countdown */}
-      {subject.examDate && subject.examDaysRemaining && (
-        <View style={styles.examBadge}>
-                <Feather name="calendar" size={14} color={Colors.errorRed} />
-          <Text style={styles.examText}>
-            Exam in {subject.examDaysRemaining} {subject.examDaysRemaining === 1 ? 'day' : 'days'}
-          </Text>
+      ) : (
+        <View style={[styles.gradientBackground, { backgroundColor: item.bgColor }]}>
+          <View style={styles.decorativeCircle1} />
+          <View style={styles.decorativeCircle2} />
         </View>
       )}
-
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.primaryButton, { borderColor: subject.color }]}
-          activeOpacity={0.8}
-        >
-          <Feather name="play-circle" size={18} color={subject.color} />
-          <Text style={[styles.actionButtonText, { color: subject.color }]}>Start Study</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.secondaryButton]}
-          activeOpacity={0.8}
-        >
-          <Feather name="file-text" size={18} color="#6B7280" />
-          <Text style={styles.secondaryButtonText}>View Notes</Text>
-        </TouchableOpacity>
+      
+      <View style={styles.cardContent}>
+        <View style={[styles.iconBadge, { backgroundColor: 'rgba(255, 255, 255, 0.95)' }]}>
+          <Feather 
+            name={(item.selectedIcon || 'folder') as any} 
+            size={24} 
+            color={item.selectedColor || item.color} 
+          />
+        </View>
+        
+        <Text style={styles.subjectName} numberOfLines={2}>
+          {item.name}
+        </Text>
+        
+        {(item.notesCount > 0 || item.studySessionsCount > 0) && (
+          <View style={styles.statsContainer}>
+            {item.notesCount > 0 && (
+              <View style={styles.statBadge}>
+                <Feather name="file-text" size={12} color={item.selectedColor || item.color} />
+                <Text style={[styles.statText, { color: item.selectedColor || item.color }]}>
+                  {item.notesCount}
+                </Text>
+              </View>
+            )}
+            {item.studySessionsCount > 0 && (
+              <View style={styles.statBadge}>
+                <Feather name="clock" size={12} color={item.selectedColor || item.color} />
+                <Text style={[styles.statText, { color: item.selectedColor || item.color }]}>
+                  {item.studySessionsCount}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -168,7 +186,13 @@ const SubjectsScreen: React.FC = () => {
             {filteredSubjects.length} {filteredSubjects.length === 1 ? 'subject' : 'subjects'}
           </Text>
         </View>
-        <TouchableOpacity style={styles.addButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.addButton}
+          activeOpacity={0.7}
+          onPress={() => {
+            navigation.navigate('AddSubject');
+          }}
+        >
           <Feather name="plus" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -178,17 +202,43 @@ const SubjectsScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Feather name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-          <Text style={styles.searchPlaceholder}>Search subjects...</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search subjects..."
+            placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              style={styles.clearButton}
+              activeOpacity={0.7}
+            >
+              <Feather name="x" size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Subjects List */}
-        {filteredSubjects.length > 0 ? (
-          <View style={styles.subjectsList}>
-            {filteredSubjects.map(renderSubjectCard)}
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.roseRed} />
+            <Text style={styles.loadingText}>Loading subjects...</Text>
           </View>
+        ) : filteredSubjects.length > 0 ? (
+          <FlatList
+            data={filteredSubjects}
+            renderItem={renderSubjectCard}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.gridRow}
+            contentContainerStyle={styles.gridContainer}
+            scrollEnabled={false}
+          />
         ) : (
           <View style={styles.emptyState}>
             <Feather name="book-open" size={48} color="#D1D5DB" />
@@ -197,7 +247,11 @@ const SubjectsScreen: React.FC = () => {
               {searchQuery ? 'Try a different search term' : 'Add your first subject to get started'}
             </Text>
             {!searchQuery && (
-              <TouchableOpacity style={styles.emptyStateButton} activeOpacity={0.8}>
+              <TouchableOpacity
+                style={styles.emptyStateButton}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('AddSubject')}
+              >
                 <Feather name="plus" size={20} color="#FFFFFF" />
                 <Text style={styles.emptyStateButtonText}>Add Subject</Text>
               </TouchableOpacity>
@@ -268,156 +322,134 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginRight: 12,
   },
-  searchPlaceholder: {
+  searchInput: {
+    flex: 1,
     fontSize: 16,
-    color: '#9CA3AF',
+    color: Colors.darkSlate,
     fontFamily: Fonts.regular,
+    padding: 0,
   },
-  subjectsList: {
-    paddingHorizontal: 24,
-    gap: 16,
+  clearButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  gridContainer: {
+    paddingHorizontal: CARD_MARGIN,
+    paddingBottom: 24,
+  },
+  gridRow: {
+    justifyContent: 'space-between',
+    marginBottom: CARD_MARGIN,
   },
   subjectCard: {
+    width: CARD_WIDTH,
+    height: 200,
     backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.fogGrey,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  subjectHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  subjectIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  subjectInitial: {
-    fontSize: 24,
-    fontWeight: '700',
-    fontFamily: Fonts.bold,
-  },
-  subjectInfo: {
-    flex: 1,
-  },
-  subjectName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.darkSlate,
-    fontFamily: Fonts.semiBold,
-    marginBottom: 4,
-  },
-  subjectDescription: {
-    fontSize: 14,
-    color: Colors.coolGrey,
-    fontFamily: Fonts.regular,
-  },
-  moreButton: {
-    padding: 4,
-  },
-  progressSection: {
-    marginBottom: 16,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  progressLabel: {
-    fontSize: 14,
-    color: Colors.coolGrey,
-    fontFamily: Fonts.regular,
-  },
-  progressValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.darkSlate,
-    fontFamily: Fonts.semiBold,
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 4,
+  gradientBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
     overflow: 'hidden',
   },
-  progressBar: {
+  decorativeCircle1: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    top: -30,
+    right: -20,
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    bottom: 10,
+    left: -10,
+  },
+  coverPhotoWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  coverPhoto: {
+    width: '100%',
     height: '100%',
-    borderRadius: 4,
+    resizeMode: 'cover',
+  },
+  coverOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+  },
+  cardContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    minHeight: 96,
+  },
+  iconBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  subjectName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.darkSlate,
+    fontFamily: Fonts.bold,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 12,
+    gap: 8,
+    marginTop: 4,
   },
-  statItem: {
+  statBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    borderRadius: 8,
   },
   statText: {
-    fontSize: 14,
-    color: Colors.coolGrey,
-    fontFamily: Fonts.regular,
-  },
-  examBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    alignSelf: 'flex-start',
-    marginBottom: 16,
-    gap: 6,
-  },
-  examText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: Colors.errorRed,
-    fontFamily: Fonts.semiBold,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 16,
-    gap: 8,
-  },
-  primaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-  },
-  secondaryButton: {
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.fogGrey,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: Fonts.semiBold,
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.coolGrey,
     fontFamily: Fonts.semiBold,
   },
   emptyState: {
@@ -455,6 +487,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.white,
     fontFamily: Fonts.semiBold,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: Colors.coolGrey,
+    fontFamily: Fonts.regular,
   },
 });
 

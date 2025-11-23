@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Fonts } from '../constants/fonts';
+import SvgIcon from './SvgIcon';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -10,6 +11,8 @@ export type StatsCardProps = {
   value: string;
   subtitle?: string;
   icon: string;
+  iconType?: 'feather' | 'svg';
+  svgIconName?: 'book-bookmark' | 'calendar-clock' | 'dice-alt';
   color: string;
   bgColor: string;
   onPress?: () => void;
@@ -20,6 +23,8 @@ const StatsCard: React.FC<StatsCardProps> = ({
   value,
   subtitle,
   icon,
+  iconType = 'feather',
+  svgIconName,
   color,
   bgColor,
   onPress,
@@ -37,7 +42,11 @@ const StatsCard: React.FC<StatsCardProps> = ({
           {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
         </View>
         <View style={styles.iconWrapper}>
-          <Feather name={icon as any} size={28} color={color} />
+          {iconType === 'svg' && svgIconName ? (
+            <SvgIcon name={svgIconName} size={28} color={color} />
+          ) : (
+            <Feather name={icon as any} size={28} color={color} />
+          )}
         </View>
       </View>
     </TouchableOpacity>

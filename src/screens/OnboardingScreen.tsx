@@ -13,6 +13,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 import type { OnboardingResponses, StudyPreference } from '../types/onboarding';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
@@ -336,9 +337,22 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ credentials, onComp
         { merge: true },
       );
 
+      Toast.show({
+        type: 'success',
+        text1: 'Welcome to MedFlow!',
+        text2: 'Your account has been successfully created',
+        position: 'top',
+      });
       setStatus({ type: 'success', message: 'MedFlow is ready for you!' });
       onComplete(sanitizedResponses);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unable to complete onboarding. Please try again.';
+      Toast.show({
+        type: 'error',
+        text1: 'Setup failed',
+        text2: errorMessage,
+        position: 'top',
+      });
       if (error instanceof Error) {
         setStatus({ type: 'error', message: error.message });
       } else {

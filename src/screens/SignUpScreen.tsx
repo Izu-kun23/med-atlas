@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 import { Fonts } from '../constants/fonts';
 import { Colors } from '../constants/colors';
 type SignUpScreenProps = {
@@ -88,7 +89,13 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onContinue, onLoginLinkPres
       return;
     }
 
-    setStatus({ type: 'success', message: 'Great! Let’s personalize MedFlow next.' });
+    Toast.show({
+      type: 'success',
+      text1: 'Account created',
+      text2: "Great! Let's personalize MedFlow next",
+      position: 'top',
+    });
+    setStatus({ type: 'success', message: "Great! Let's personalize MedFlow next." });
     onContinue?.({
       fullName: trimmedFullName,
       email: trimmedEmail,
@@ -144,7 +151,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onContinue, onLoginLinkPres
                   <Feather
                     name="user"
                     size={20}
-                    color={focus.name ? '#6366F1' : '#9CA3AF'}
+                    color={focus.name ? Colors.roseRed : '#9CA3AF'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -164,7 +171,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onContinue, onLoginLinkPres
                   <Feather
                     name="mail"
                     size={20}
-                    color={focus.email ? '#6366F1' : '#9CA3AF'}
+                    color={focus.email ? Colors.roseRed : '#9CA3AF'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -187,7 +194,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onContinue, onLoginLinkPres
                   <Feather
                     name="lock"
                     size={20}
-                    color={focus.password ? '#6366F1' : '#9CA3AF'}
+                    color={focus.password ? Colors.roseRed : '#9CA3AF'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -215,7 +222,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onContinue, onLoginLinkPres
                   <Feather
                     name="lock"
                     size={20}
-                    color={focus.confirm ? '#6366F1' : '#9CA3AF'}
+                    color={focus.confirm ? Colors.roseRed : '#9CA3AF'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -386,7 +393,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: '#6366F1',
+    shadowColor: Colors.roseRed,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,

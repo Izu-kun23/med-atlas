@@ -155,11 +155,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   dotActive: {
-    backgroundColor: '#6366F1',
+    backgroundColor: Colors.roseRed,
     width: 20,
   },
   button: {
-    backgroundColor: '#6366F1',
+    backgroundColor: Colors.roseRed,
     borderRadius: 24,
     paddingVertical: 14,
     alignItems: 'center',

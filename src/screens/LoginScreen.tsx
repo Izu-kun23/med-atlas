@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import Toast from 'react-native-toast-message';
 import { auth } from '../lib/firebase';
 import { Fonts } from '../constants/fonts';
 import { Colors } from '../constants/colors';
@@ -101,9 +102,22 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
 
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
 
+      Toast.show({
+        type: 'success',
+        text1: 'Welcome back!',
+        text2: 'You have successfully logged in',
+        position: 'top',
+      });
       setStatus({ type: 'success', message: 'Welcome back!' });
       onLogin?.({ email: trimmedEmail, password });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unable to sign you in. Please try again.';
+      Toast.show({
+        type: 'error',
+        text1: 'Login Failed',
+        text2: errorMessage,
+        position: 'top',
+      });
       if (error instanceof Error) {
         setStatus({ type: 'error', message: error.message });
       } else {
@@ -171,7 +185,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                   <Feather
                     name="mail"
                     size={20}
-                    color={emailFocused ? '#6366F1' : '#9CA3AF'}
+                    color={emailFocused ? Colors.roseRed : '#9CA3AF'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -199,7 +213,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                   <Feather
                     name="lock"
                     size={20}
-                    color={passwordFocused ? '#6366F1' : '#9CA3AF'}
+                    color={passwordFocused ? Colors.roseRed : '#9CA3AF'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -404,7 +418,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: '#6366F1',
+    shadowColor: Colors.roseRed,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,

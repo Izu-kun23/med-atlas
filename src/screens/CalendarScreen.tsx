@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,22 @@ import {
   Modal,
   TextInput,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import SvgIcon from '../components/SvgIcon';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Toast from 'react-native-toast-message';
 import { Fonts } from '../constants/fonts';
 import { Colors } from '../constants/colors';
+import { googleCalendarService } from '../services/googleCalendarService';
+import { db, auth } from '../lib/firebase';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { Alert } from 'react-native';
+import { getResponsivePadding, SCREEN_WIDTH } from '../utils/responsive';
 
 const googleLogo = require('../../assets/logo/google.png');
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type CalendarEvent = {
   id: string;
@@ -35,27 +42,13 @@ const CalendarScreen: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
-  const [events, setEvents] = useState<CalendarEvent[]>([
-    {
-      id: '1',
-      date: new Date().toISOString().split('T')[0],
-      title: 'Anatomy Lecture',
-      time: '8:00 AM',
-      type: 'lecture',
-      color: Colors.roseRed,
-    },
-    {
-      id: '2',
-      date: new Date().toISOString().split('T')[0],
-      title: 'Study Session',
-      time: '2:00 PM',
-      type: 'study',
-      color: '#10B981',
-    },
-  ]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
@@ -63,6 +56,59 @@ const CalendarScreen: React.FC = () => {
     time: new Date(),
     type: 'lecture' as CalendarEvent['type'],
   });
+
+  // Check Google Calendar connection status on mount
+  useEffect(() => {
+    checkGoogleConnection();
+  }, []);
+
+  // Fetch calendar events from Firestore
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) {
+      setIsLoadingEvents(false);
+      return;
+    }
+
+    setIsLoadingEvents(true);
+    const eventsQuery = query(
+      collection(db, 'calendarEvents'),
+      where('userId', '==', user.uid)
+    );
+
+    const unsubscribe = onSnapshot(
+      eventsQuery,
+      (snapshot) => {
+        const fetchedEvents: CalendarEvent[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedEvents.push({
+            id: doc.id,
+            date: data.date,
+            title: data.title,
+            time: data.time || undefined,
+            type: data.type,
+            color: data.color || eventTypeColors[data.type as CalendarEvent['type']] || Colors.roseRed,
+            description: data.description || undefined,
+          });
+        });
+        setEvents(fetchedEvents);
+        setIsLoadingEvents(false);
+      },
+      (error) => {
+        console.error('Error fetching calendar events:', error);
+        setIsLoadingEvents(false);
+        Toast.show({
+          type: 'error',
+          text1: 'Error loading events',
+          text2: 'Failed to load calendar events',
+          position: 'top',
+        });
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   const eventTypeColors: Record<CalendarEvent['type'], string> = {
     lecture: '#6366F1',
@@ -102,24 +148,49 @@ const CalendarScreen: React.FC = () => {
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
+    
+    // Get first day of the month
     const firstDay = new Date(year, month, 1);
+    // Get last day of the month (day 0 of next month)
     const lastDay = new Date(year, month + 1, 0);
+    
     const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
+    const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
     const days: (Date | null)[] = [];
 
+    // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
+    
+    // Add all days of the month
     for (let day = 1; day <= daysInMonth; day++) {
-      days.push(new Date(year, month, day));
+      const dayDate = new Date(year, month, day);
+      days.push(dayDate);
     }
+    
+    // Ensure we always have a multiple of 7 days for proper grid layout
+    // Add empty cells at the end if needed
+    const totalCells = days.length;
+    const remainingCells = totalCells % 7;
+    if (remainingCells !== 0) {
+      const cellsToAdd = 7 - remainingCells;
+      for (let i = 0; i < cellsToAdd; i++) {
+        days.push(null);
+      }
+    }
+    
     return days;
   };
 
   const formatDateKey = (date: Date | null): string => {
     if (!date) return '';
-    return date.toISOString().split('T')[0];
+    // Use local date to avoid timezone issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const getEventsForDate = (date: Date | null): CalendarEvent[] => {
@@ -131,10 +202,11 @@ const CalendarScreen: React.FC = () => {
   const isToday = (date: Date | null): boolean => {
     if (!date) return false;
     const today = new Date();
+    // Compare year, month, and day using local time
     return (
-      date.getDate() === today.getDate() &&
+      date.getFullYear() === today.getFullYear() &&
       date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
+      date.getDate() === today.getDate()
     );
   };
 
@@ -155,7 +227,18 @@ const CalendarScreen: React.FC = () => {
     });
   };
 
-  const handleAddEvent = () => {
+  const handleAddEvent = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      Toast.show({
+        type: 'error',
+        text1: 'Authentication required',
+        text2: 'Please log in to create events',
+        position: 'top',
+      });
+      return;
+    }
+
     const dateKey = formatDateKey(newEvent.date);
     const timeString = newEvent.time.toLocaleTimeString('en-US', {
       hour: 'numeric',
@@ -163,25 +246,44 @@ const CalendarScreen: React.FC = () => {
       hour12: true,
     });
 
-    const event: CalendarEvent = {
-      id: Date.now().toString(),
-      date: dateKey,
-      title: newEvent.title,
-      description: newEvent.description,
-      time: timeString,
-      type: newEvent.type,
-      color: eventTypeColors[newEvent.type],
-    };
+    try {
+      const eventData = {
+        userId: user.uid,
+        date: dateKey,
+        title: newEvent.title,
+        description: newEvent.description || '',
+        time: timeString,
+        type: newEvent.type,
+        color: eventTypeColors[newEvent.type],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
 
-    setEvents([...events, event]);
-    setShowAddEventModal(false);
-    setNewEvent({
-      title: '',
-      description: '',
-      date: new Date(),
-      time: new Date(),
-      type: 'lecture',
-    });
+      await addDoc(collection(db, 'calendarEvents'), eventData);
+
+      setShowAddEventModal(false);
+      setNewEvent({
+        title: '',
+        description: '',
+        date: new Date(),
+        time: new Date(),
+        type: 'lecture',
+      });
+      Toast.show({
+        type: 'success',
+        text1: 'Event created',
+        text2: 'Your calendar event has been successfully saved',
+        position: 'top',
+      });
+    } catch (error: any) {
+      console.error('Error saving event:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Save failed',
+        text2: 'Failed to save event. Please try again.',
+        position: 'top',
+      });
+    }
   };
 
   const handleDateSelect = (date: Date) => {
@@ -198,16 +300,267 @@ const CalendarScreen: React.FC = () => {
   const selectedDateEvents = events.filter((event) => event.date === selectedDate);
   const days = getDaysInMonth(currentDate);
 
-  const handleGoogleCalendar = () => {
-    console.log('Add to Google Calendar');
+  const checkGoogleConnection = async () => {
+    try {
+      const isConnected = await googleCalendarService.isAuthenticated();
+      setIsGoogleConnected(isConnected);
+    } catch (error) {
+      console.error('Error checking Google Calendar connection:', error);
+      setIsGoogleConnected(false);
+    }
+  };
+
+  const handleGoogleCalendar = async () => {
+    try {
+      if (!isGoogleConnected) {
+        // Connect to Google Calendar
+        setIsSyncing(true);
+        const success = await googleCalendarService.authenticate();
+        setIsSyncing(false);
+
+        if (success) {
+          setIsGoogleConnected(true);
+          Alert.alert(
+            'Success',
+            'Google Calendar connected successfully! You can now sync your events.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert(
+            'Connection Failed',
+            'Failed to connect to Google Calendar. Please try again.',
+            [{ text: 'OK' }]
+          );
+        }
+      } else {
+        // Already connected - show options
+        Alert.alert(
+          'Google Calendar',
+          'What would you like to do?',
+          [
+            {
+              text: 'Sync Events',
+              onPress: syncEventsToGoogle,
+            },
+            {
+              text: 'Disconnect',
+              style: 'destructive',
+              onPress: handleDisconnectGoogle,
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+          ]
+        );
+      }
+    } catch (error: any) {
+      setIsSyncing(false);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to connect to Google Calendar. Please check your configuration.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const syncEventsToGoogle = async () => {
+    try {
+      setIsSyncing(true);
+      
+      // Sync all events to Google Calendar
+      for (const event of events) {
+        const eventDate = new Date(event.date);
+        const [hours, minutes] = event.time
+          ? event.time.replace(/[APM]/g, '').split(':').map((s) => parseInt(s.trim(), 10))
+          : [9, 0];
+        
+        const isPM = event.time?.includes('PM') || false;
+        const adjustedHours = isPM && hours !== 12 ? hours + 12 : hours === 12 && !isPM ? 0 : hours;
+
+        const startDateTime = new Date(eventDate);
+        startDateTime.setHours(adjustedHours, minutes, 0, 0);
+
+        const endDateTime = new Date(startDateTime);
+        endDateTime.setHours(endDateTime.getHours() + 1); // Default 1 hour duration
+
+        const googleEvent = {
+          summary: event.title,
+          description: event.description || `${eventTypeLabels[event.type]} - ${event.title}`,
+          start: {
+            dateTime: startDateTime.toISOString(),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          },
+          end: {
+            dateTime: endDateTime.toISOString(),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          },
+        };
+
+        await googleCalendarService.createEvent(googleEvent);
+      }
+
+      setIsSyncing(false);
+      Alert.alert(
+        'Success',
+        `Successfully synced ${events.length} event(s) to Google Calendar!`,
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      setIsSyncing(false);
+      Alert.alert(
+        'Sync Failed',
+        error.message || 'Failed to sync events to Google Calendar.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleDisconnectGoogle = async () => {
+    Alert.alert(
+      'Disconnect Google Calendar',
+      'Are you sure you want to disconnect your Google Calendar?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Disconnect',
+          style: 'destructive',
+          onPress: async () => {
+            await googleCalendarService.logout();
+            setIsGoogleConnected(false);
+            Alert.alert('Disconnected', 'Google Calendar has been disconnected.', [{ text: 'OK' }]);
+          },
+        },
+      ]
+    );
+  };
+
+  const addEventToGoogleCalendar = async (event: CalendarEvent) => {
+    try {
+      if (!isGoogleConnected) {
+        Alert.alert(
+          'Not Connected',
+          'Please connect to Google Calendar first to sync events.',
+          [
+            {
+              text: 'Connect Now',
+              onPress: handleGoogleCalendar,
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+          ]
+        );
+        return;
+      }
+
+      setIsSyncing(true);
+      const eventDate = new Date(event.date);
+      const [hours, minutes] = event.time
+        ? event.time.replace(/[APM]/g, '').split(':').map((s) => parseInt(s.trim(), 10))
+        : [9, 0];
+      
+      const isPM = event.time?.includes('PM') || false;
+      const adjustedHours = isPM && hours !== 12 ? hours + 12 : hours === 12 && !isPM ? 0 : hours;
+
+      const startDateTime = new Date(eventDate);
+      startDateTime.setHours(adjustedHours, minutes, 0, 0);
+
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setHours(endDateTime.getHours() + 1);
+
+      const googleEvent = {
+        summary: event.title,
+        description: event.description || `${eventTypeLabels[event.type]} - ${event.title}`,
+        start: {
+          dateTime: startDateTime.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        end: {
+          dateTime: endDateTime.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+      };
+
+      const eventId = await googleCalendarService.createEvent(googleEvent);
+      setIsSyncing(false);
+
+      if (eventId) {
+        Toast.show({
+          type: 'success',
+          text1: 'Event synced',
+          text2: 'Event has been added to Google Calendar',
+          position: 'top',
+        });
+      }
+    } catch (error: any) {
+      setIsSyncing(false);
+      Toast.show({
+        type: 'error',
+        text1: 'Sync failed',
+        text2: error.message || 'Failed to add event to Google Calendar',
+        position: 'top',
+      });
+    }
   };
 
   const handleOutlook = () => {
-    console.log('Add to Outlook');
+    Alert.alert('Coming Soon', 'Outlook integration will be available soon.', [{ text: 'OK' }]);
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    const user = auth.currentUser;
+    if (!user) {
+      Toast.show({
+        type: 'error',
+        text1: 'Authentication required',
+        text2: 'Please log in to delete events',
+        position: 'top',
+      });
+      return;
+    }
+
+    Alert.alert(
+      'Delete Event',
+      'Are you sure you want to delete this event?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'calendarEvents', eventId));
+              Toast.show({
+                type: 'success',
+                text1: 'Event deleted',
+                text2: 'The event has been successfully removed',
+                position: 'top',
+              });
+            } catch (error: any) {
+              console.error('Error deleting event:', error);
+              Toast.show({
+                type: 'error',
+                text1: 'Delete failed',
+                text2: 'Failed to delete event. Please try again.',
+                position: 'top',
+              });
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView 
+      style={styles.container} 
+      edges={Platform.OS === 'android' ? ['top', 'bottom'] : ['top']}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Calendar</Text>
@@ -310,7 +663,12 @@ const CalendarScreen: React.FC = () => {
         </View>
 
         {/* Selected Date Events */}
-        {selectedDateEvents.length > 0 && (
+        {isLoadingEvents ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.roseRed} />
+            <Text style={styles.loadingText}>Loading events...</Text>
+          </View>
+        ) : selectedDateEvents.length > 0 ? (
           <View style={styles.eventsSection}>
             <Text style={styles.eventsSectionTitle}>
               {new Date(selectedDate).toLocaleDateString('en-US', {
@@ -332,10 +690,15 @@ const CalendarScreen: React.FC = () => {
                 <View style={styles.eventActions}>
                   <TouchableOpacity
                     style={styles.eventActionButton}
-                    onPress={handleGoogleCalendar}
+                    onPress={() => addEventToGoogleCalendar(event)}
                     activeOpacity={0.7}
+                    disabled={isSyncing}
                   >
-                    <Image source={googleLogo} style={styles.eventActionIcon} resizeMode="contain" />
+                    {isSyncing ? (
+                      <ActivityIndicator size="small" color="#4285F4" />
+                    ) : (
+                      <Image source={googleLogo} style={styles.eventActionIcon} resizeMode="contain" />
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.eventActionButton}
@@ -344,16 +707,20 @@ const CalendarScreen: React.FC = () => {
                   >
                     <Feather name="mail" size={22} color="#0078D4" />
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.eventActionButton}
+                    onPress={() => handleDeleteEvent(event.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="trash-2" size={20} color={Colors.errorRed} />
+                  </TouchableOpacity>
                 </View>
               </View>
             ))}
           </View>
-        )}
-
-        {/* Empty State for Selected Date */}
-        {selectedDateEvents.length === 0 && (
+        ) : (
           <View style={styles.emptyDateState}>
-            <Feather name="calendar" size={64} color="#D1D5DB" />
+            <SvgIcon name="calendar-lines" size={64} color="#D1D5DB" />
             <Text style={styles.emptyDateTitle}>No events scheduled</Text>
             <Text style={styles.emptyDateText}>
               Tap the + button to add an event for{' '}
@@ -372,19 +739,39 @@ const CalendarScreen: React.FC = () => {
             Export your events to your preferred calendar app
           </Text>
           <TouchableOpacity
-            style={[styles.syncButton, styles.googleButton]}
+            style={[
+              styles.syncButton,
+              styles.googleButton,
+              isGoogleConnected && styles.connectedButton,
+            ]}
             onPress={handleGoogleCalendar}
             activeOpacity={0.8}
+            disabled={isSyncing}
           >
             <View style={styles.syncButtonContent}>
               <View style={styles.syncIconContainer}>
-                <Image source={googleLogo} style={styles.googleLogo} resizeMode="contain" />
+                {isSyncing ? (
+                  <ActivityIndicator size="small" color="#4285F4" />
+                ) : (
+                  <Image source={googleLogo} style={styles.googleLogo} resizeMode="contain" />
+                )}
               </View>
               <View style={styles.syncButtonText}>
-                <Text style={styles.syncButtonTitle}>Add to Google Calendar</Text>
-                <Text style={styles.syncButtonSubtitle}>Sync with your Google account</Text>
+                <Text style={styles.syncButtonTitle}>
+                  {isGoogleConnected ? 'Google Calendar Connected' : 'Add to Google Calendar'}
+                </Text>
+                <Text style={styles.syncButtonSubtitle}>
+                  {isGoogleConnected
+                    ? 'Tap to sync events or disconnect'
+                    : 'Sync with your Google account'}
+                </Text>
               </View>
             </View>
+            {isGoogleConnected && (
+              <View style={styles.connectedBadge}>
+                <Feather name="check-circle" size={20} color="#10B981" />
+              </View>
+            )}
             <Feather name="chevron-right" size={24} color="#9CA3AF" />
           </TouchableOpacity>
 
@@ -578,7 +965,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: getResponsivePadding(20),
     paddingTop: 16,
     paddingBottom: 24,
   },
@@ -606,8 +993,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 24,
+    paddingHorizontal: getResponsivePadding(20),
+    marginBottom: Platform.OS === 'android' ? 16 : 24,
   },
   monthNavButton: {
     width: 48,
@@ -618,60 +1005,79 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   monthText: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: Platform.OS === 'android' ? 22 : 24,
+    fontWeight: '800',
     color: Colors.darkSlate,
     fontFamily: Fonts.bold,
+    textAlign: 'center',
+    flex: 1,
   },
   calendarContainer: {
     backgroundColor: Colors.white,
-    borderRadius: 24,
-    marginHorizontal: 34,
-    marginBottom: 22,
-    padding: 20,
+    borderRadius: Platform.OS === 'android' ? 20 : 24,
+    marginHorizontal: Platform.OS === 'android' ? getResponsivePadding(20) : 34,
+    marginBottom: Platform.OS === 'android' ? 20 : 22,
+    padding: Platform.OS === 'android' ? 16 : 20,
     borderWidth: 1,
     borderColor: Colors.fogGrey,
+    shadowColor: Platform.OS === 'android' ? '#000' : undefined,
+    shadowOffset: Platform.OS === 'android' ? { width: 0, height: 2 } : undefined,
+    shadowOpacity: Platform.OS === 'android' ? 0.08 : undefined,
+    shadowRadius: Platform.OS === 'android' ? 8 : undefined,
+    elevation: Platform.OS === 'android' ? 4 : undefined,
   },
   dayHeaders: {
     flexDirection: 'row',
-    marginBottom: -50,
+    justifyContent: 'space-between',
+    marginBottom: Platform.OS === 'android' ? 8 : 12,
   },
   dayHeader: {
-    flex: 1,
+    width: '14%',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: Platform.OS === 'android' ? 10 : 12,
   },
   dayHeaderText: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'android' ? 13 : 15,
     fontWeight: '700',
     color: Colors.coolGrey,
     fontFamily: Fonts.bold,
+    textTransform: Platform.OS === 'android' ? 'uppercase' : 'none',
+    letterSpacing: Platform.OS === 'android' ? 0.5 : 0,
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-
+    justifyContent: 'space-between',
   },
   dayCell: {
-    width: (SCREEN_WIDTH - 88) / 7,
-    height: 56,
+    width: '14%', // Approximately 1/7 of the width, accounting for spacing
+    aspectRatio: 1,
+    minHeight: Platform.OS === 'android' ? 48 : 50,
+    maxHeight: Platform.OS === 'android' ? 56 : 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 14,
-    margin: 2,
+    borderRadius: Platform.OS === 'android' ? 12 : 14,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
     position: 'relative',
   },
   emptyCell: {
     opacity: 0,
   },
   todayCell: {
-      backgroundColor: Colors.roseLight,
+    backgroundColor: Colors.roseLight,
+    borderWidth: Platform.OS === 'android' ? 2 : 0,
+    borderColor: Colors.roseRed,
   },
   selectedCell: {
     backgroundColor: Colors.roseRed,
+    shadowColor: Colors.roseRed,
+    shadowOffset: { width: 0, height: Platform.OS === 'android' ? 2 : 4 },
+    shadowOpacity: Platform.OS === 'android' ? 0.3 : 0.4,
+    shadowRadius: Platform.OS === 'android' ? 4 : 8,
+    elevation: Platform.OS === 'android' ? 6 : 4,
   },
   dayText: {
-    fontSize: 17,
+    fontSize: Platform.OS === 'android' ? 16 : 17,
     fontWeight: '600',
     color: Colors.darkSlate,
     fontFamily: Fonts.semiBold,
@@ -705,7 +1111,7 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   eventsSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: getResponsivePadding(20),
     marginBottom: 32,
   },
   eventsSectionTitle: {
@@ -791,7 +1197,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   syncSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: getResponsivePadding(20),
   },
   syncSectionTitle: {
     fontSize: 24,
@@ -876,7 +1282,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 28,
+    paddingHorizontal: 28,
+    paddingTop: 12,
+    paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: Colors.fogGrey,
   },
@@ -893,6 +1301,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: Colors.coolGrey,
+    fontFamily: Fonts.regular,
   },
   modalScroll: {
     padding: 28,
@@ -973,6 +1392,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.white,
     fontFamily: Fonts.bold,
+  },
+  connectedButton: {
+    borderLeftColor: '#10B981',
+  },
+  connectedBadge: {
+    marginRight: 8,
   },
 });
 

@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Animated, Dimensions, Easing, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { Animated, Dimensions, Easing, StyleSheet, Text, View, ActivityIndicator, StatusBar, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 import { useBricolageGrotesque } from './src/hooks/useFonts';
 import StartScreen from './src/screens/StartScreen';
 import CarouselScreen from './src/screens/CarouselScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
-import TabNavigator from './src/navigation/TabNavigator';
+import RootStackNavigator from './src/navigation/RootStackNavigator';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -105,9 +106,14 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <StatusBar
+        barStyle={Platform.OS === 'android' ? 'dark-content' : 'dark-content'}
+        backgroundColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
+        translucent={Platform.OS === 'android'}
+      />
       {appPhase === 'home' ? (
         <NavigationContainer>
-          <TabNavigator userRole={userRole} />
+          <RootStackNavigator userRole={userRole} />
         </NavigationContainer>
       ) : appPhase === 'login' ? (
         <LoginScreen onRequestSignUp={handleShowSignUp} onLogin={handleLogin} />
@@ -155,6 +161,7 @@ export default function App() {
           )}
         </View>
       )}
+      <Toast />
     </SafeAreaProvider>
   );
 }

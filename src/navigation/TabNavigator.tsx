@@ -4,9 +4,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UIcons from '../components/icons/UIcons';
 import { Colors } from '../constants/colors';
 import HomeScreen from '../screens/HomeScreen';
-import SubjectsScreen from '../screens/SubjectsScreen';
+import SubjectsStackNavigator from './SubjectsStackNavigator';
 import CalendarScreen from '../screens/CalendarScreen';
-import QuizHomeScreen from '../screens/QuizHomeScreen';
+import QuizStackNavigator from './QuizStackNavigator';
 import MoreMenuScreen from '../screens/MoreMenuScreen';
 
 const Tab = createBottomTabNavigator();
@@ -67,9 +67,9 @@ const TabNavigator: React.FC<TabNavigatorProps> = ({ userRole = 'STUDENT' }) => 
   return (
     <Tab.Navigator screenOptions={screenOptions}>
       <Tab.Screen name="Today" component={HomeScreen} />
-      <Tab.Screen name="Subjects" component={SubjectsScreen} options={subjectsOptions} />
+      <Tab.Screen name="Subjects" component={SubjectsStackNavigator} options={subjectsOptions} />
       <Tab.Screen name="Calendar" component={CalendarScreen} />
-      <Tab.Screen name="Quizzes" component={QuizHomeScreen} />
+      <Tab.Screen name="Quizzes" component={QuizStackNavigator} />
       <Tab.Screen name="More" component={MoreMenuScreen} />
     </Tab.Navigator>
   );
