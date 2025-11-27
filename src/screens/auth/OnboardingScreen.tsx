@@ -14,12 +14,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
-import type { OnboardingResponses, StudyPreference } from '../types/onboarding';
+import type { OnboardingResponses, StudyPreference } from '../../types/onboarding';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
+import { auth, db } from '../../lib/firebase';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
 
 type Role = 'STUDENT' | 'INTERN' | 'WORKER';
 

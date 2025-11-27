@@ -12,10 +12,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import { SubjectsStackParamList } from '../navigation/SubjectsStackNavigator';
-import { db, auth } from '../lib/firebase';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
+import { SubjectsStackParamList } from '../../navigation/SubjectsStackNavigator';
+import { db, auth } from '../../lib/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 
 type Note = {

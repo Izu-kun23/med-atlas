@@ -15,10 +15,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Feather } from '@expo/vector-icons';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import { SubjectsStackParamList } from '../navigation/SubjectsStackNavigator';
-import { db, auth } from '../lib/firebase';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
+import { SubjectsStackParamList } from '../../navigation/SubjectsStackNavigator';
+import TabBar from '../../components/TabBar';
+import { db, auth } from '../../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -49,6 +50,7 @@ const SubjectsScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('all');
 
   const fetchSubjects = async () => {
     const user = auth.currentUser;
@@ -202,6 +204,19 @@ const SubjectsScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Tab Navigation */}
+        <View style={styles.tabSection}>
+          <TabBar
+            tabs={[
+              { id: 'all', label: 'All' },
+              { id: 'recent', label: 'Recent' },
+              { id: 'favorites', label: 'Favorites' },
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </View>
+
         <View style={styles.searchContainer}>
           <Feather name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
           <TextInput
@@ -291,7 +306,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 28,
     backgroundColor: Colors.roseRed,
     justifyContent: 'center',
     alignItems: 'center',
@@ -302,11 +317,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 24,
   },
+  tabSection: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
-    borderRadius: 16,
+    borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginHorizontal: 24,
@@ -340,10 +359,15 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     height: 200,
     backgroundColor: Colors.white,
-    borderRadius: 24,
+    borderRadius: 28,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.fogGrey,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   gradientBackground: {
     position: 'absolute',
@@ -398,14 +422,14 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     minHeight: 96,
   },
   iconBadge: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -432,7 +456,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 8,
+    borderRadius: 16,
   },
   statText: {
     fontSize: 11,
@@ -464,7 +488,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.roseRed,
-    borderRadius: 16,
+    borderRadius: 24,
     paddingHorizontal: 24,
     paddingVertical: 12,
     gap: 8,

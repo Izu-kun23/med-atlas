@@ -19,12 +19,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Toast from 'react-native-toast-message';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import { SubjectsStackParamList } from '../navigation/SubjectsStackNavigator';
-import { db, auth } from '../lib/firebase';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
+import { SubjectsStackParamList } from '../../navigation/SubjectsStackNavigator';
+import { db, auth } from '../../lib/firebase';
 import { collection, addDoc, doc, updateDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
-import { extractTextFromImage } from '../utils/ocr';
+import { extractTextFromImage } from '../../utils/ocr';
 
 type AddNoteRouteProp = RouteProp<SubjectsStackParamList, 'AddNote'>;
 type AddNoteNavigationProp = StackNavigationProp<SubjectsStackParamList>;

@@ -17,10 +17,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import { SubjectsStackParamList } from '../navigation/SubjectsStackNavigator';
-import { db, auth, storage } from '../lib/firebase';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
+import { SubjectsStackParamList } from '../../navigation/SubjectsStackNavigator';
+import { db, auth, storage } from '../../lib/firebase';
 import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 

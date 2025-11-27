@@ -15,12 +15,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
+import SvgIcon from '../../components/SvgIcon';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Toast from 'react-native-toast-message';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import { db, auth } from '../lib/firebase';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
+import { db, auth } from '../../lib/firebase';
 import {
   collection,
   query,
@@ -31,7 +32,7 @@ import {
   doc,
   updateDoc,
 } from 'firebase/firestore';
-import { RootStackParamList } from '../navigation/RootStackNavigator';
+import { RootStackParamList } from '../../navigation/RootStackNavigator';
 
 type StudySessionRouteProp = RouteProp<RootStackParamList, 'StudySession'>;
 type StudySessionNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -490,7 +491,7 @@ const StudySessionScreen: React.FC = () => {
                   disabled={!selectedSubject}
                   activeOpacity={0.7}
                 >
-                  <Feather name="play" size={24} color="#FFFFFF" />
+                  <SvgIcon name="play" size={24} color="#FFFFFF" />
                   <Text style={styles.timerButtonText}>Start Session</Text>
                 </TouchableOpacity>
               ) : (

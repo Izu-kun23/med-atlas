@@ -11,10 +11,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import { RootStackParamList } from '../navigation/RootStackNavigator';
-import { renderFormattedContent } from '../utils/formatNoteContent';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
+import { RootStackParamList } from '../../navigation/RootStackNavigator';
+import { renderFormattedContent } from '../../utils/formatNoteContent';
 
 type NoteDetailRouteProp = RouteProp<RootStackParamList, 'NoteDetail'>;
 type NoteDetailNavigationProp = StackNavigationProp<RootStackParamList>;

@@ -1,53 +1,40 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
+  Animated,
+  Image,
   KeyboardAvoidingView,
   Platform,
-  Image,
-  Animated,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 import Toast from 'react-native-toast-message';
-import { auth } from '../lib/firebase';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-
-type LoginScreenProps = {
-  onLogin?: (credentials: { email: string; password: string }) => void;
-  onContinueWithGoogle?: () => void;
-  onContinueWithApple?: () => void;
-  onForgotPassword?: () => void;
-  onRequestSignUp?: () => void;
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
+type SignUpScreenProps = {
+  onContinue?: (fields: { fullName: string; email: string; password: string; confirmPassword: string }) => void;
+  onLoginLinkPress?: () => void;
 };
 
-const LoginScreen: React.FC<LoginScreenProps> = ({
-  onLogin,
-  onContinueWithApple,
-  onContinueWithGoogle,
-  onForgotPassword,
-  onRequestSignUp,
-}) => {
+const SignUpScreen: React.FC<SignUpScreenProps> = ({ onContinue, onLoginLinkPress }) => {
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [focus, setFocus] = useState<{ name?: boolean; email?: boolean; password?: boolean; confirm?: boolean }>({});
   const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const appLogo = require('../../assets/logo/logo.png');
 
-  // Logo animations - starts centered, slides upward slightly
+  const appLogo = require('../../../assets/logo/logo.png');
+
   const logoTranslateY = useRef(new Animated.Value(0)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(1.15)).current;
-  // Content animations - fade/slide in after logo settles
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentTranslateY = useRef(new Animated.Value(32)).current;
 
@@ -88,44 +75,33 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
     ]).start();
   }, [contentOpacity, contentTranslateY, logoOpacity, logoScale, logoTranslateY]);
 
-  const handleSubmit = async () => {
+  const handleSignUp = async () => {
+    const trimmedFullName = fullName.trim();
     const trimmedEmail = email.trim().toLowerCase();
 
-    if (!trimmedEmail || !password) {
-      setStatus({ type: 'error', message: 'Please enter your email and password.' });
+    if (!trimmedFullName || !trimmedEmail || !password || !confirmPassword) {
+      setStatus({ type: 'error', message: 'Please fill in all fields.' });
       return;
     }
 
-    try {
-      setLoading(true);
-      setStatus(null);
-
-      await signInWithEmailAndPassword(auth, trimmedEmail, password);
-
-      Toast.show({
-        type: 'success',
-        text1: 'Welcome back!',
-        text2: 'You have successfully logged in',
-        position: 'top',
-      });
-      setStatus({ type: 'success', message: 'Welcome back!' });
-      onLogin?.({ email: trimmedEmail, password });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unable to sign you in. Please try again.';
-      Toast.show({
-        type: 'error',
-        text1: 'Login Failed',
-        text2: errorMessage,
-        position: 'top',
-      });
-      if (error instanceof Error) {
-        setStatus({ type: 'error', message: error.message });
-      } else {
-        setStatus({ type: 'error', message: 'Unable to sign you in. Please try again.' });
-      }
-    } finally {
-      setLoading(false);
+    if (password !== confirmPassword) {
+      setStatus({ type: 'error', message: 'Passwords do not match.' });
+      return;
     }
+
+    Toast.show({
+      type: 'success',
+      text1: 'Account created',
+      text2: "Great! Let's personalize MedFlow next",
+      position: 'top',
+    });
+    setStatus({ type: 'success', message: "Great! Let's personalize MedFlow next." });
+    onContinue?.({
+      fullName: trimmedFullName,
+      email: trimmedEmail,
+      password,
+      confirmPassword,
+    });
   };
 
   return (
@@ -135,16 +111,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
         style={styles.container}
       >
         <View style={styles.content}>
-          {/* Logo - centered initially, then moves to top */}
           <Animated.View
             style={[
               styles.logoContainer,
               {
                 opacity: logoOpacity,
-                transform: [
-                  { translateY: logoTranslateY },
-                  { scale: logoScale },
-                ],
+                transform: [{ translateY: logoTranslateY }, { scale: logoScale }],
               },
             ]}
           >
@@ -157,7 +129,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
             />
           </Animated.View>
 
-          {/* Content - appears after logo animation */}
           <Animated.View
             style={[
               styles.contentContainer,
@@ -168,24 +139,39 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
             ]}
           >
             <View style={styles.header}>
-              <Text style={styles.heading}>Welcome Back</Text>
+              <Text style={styles.heading}>Create Account</Text>
               <Text style={styles.subheading}>
-                Sign in to continue tracking your health.
+                Join MedTrackr to keep your studies and clinical duties on track.
               </Text>
             </View>
 
             <View style={styles.form}>
               <View style={styles.inputContainer}>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    emailFocused && styles.inputWrapperFocused,
-                  ]}
-                >
+                <View style={[styles.inputWrapper, focus.name && styles.inputWrapperFocused]}>
+                  <Feather
+                    name="user"
+                    size={20}
+                    color={focus.name ? Colors.roseRed : '#9CA3AF'}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    value={fullName}
+                    onChangeText={setFullName}
+                    placeholder="Full name"
+                    style={styles.input}
+                    placeholderTextColor="#9CA3AF"
+                    onFocus={() => setFocus({ ...focus, name: true })}
+                    onBlur={() => setFocus({ ...focus, name: false })}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={[styles.inputWrapper, focus.email && styles.inputWrapperFocused]}>
                   <Feather
                     name="mail"
                     size={20}
-                    color={emailFocused ? Colors.roseRed : '#9CA3AF'}
+                    color={focus.email ? Colors.roseRed : '#9CA3AF'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -197,23 +183,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     autoCorrect={false}
                     style={styles.input}
                     placeholderTextColor="#9CA3AF"
-                    onFocus={() => setEmailFocused(true)}
-                    onBlur={() => setEmailFocused(false)}
+                    onFocus={() => setFocus({ ...focus, email: true })}
+                    onBlur={() => setFocus({ ...focus, email: false })}
                   />
                 </View>
               </View>
 
               <View style={styles.inputContainer}>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    passwordFocused && styles.inputWrapperFocused,
-                  ]}
-                >
+                <View style={[styles.inputWrapper, focus.password && styles.inputWrapperFocused]}>
                   <Feather
                     name="lock"
                     size={20}
-                    color={passwordFocused ? Colors.roseRed : '#9CA3AF'}
+                    color={focus.password ? Colors.roseRed : '#9CA3AF'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -223,38 +204,53 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     secureTextEntry={!showPassword}
                     style={styles.input}
                     placeholderTextColor="#9CA3AF"
-                    onFocus={() => setPasswordFocused(true)}
-                    onBlur={() => setPasswordFocused(false)}
+                    onFocus={() => setFocus({ ...focus, password: true })}
+                    onBlur={() => setFocus({ ...focus, password: false })}
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
                     style={styles.eyeIcon}
                     activeOpacity={0.7}
                   >
-                    <Feather
-                      name={showPassword ? 'eye-off' : 'eye'}
-                      size={20}
-                      color="#9CA3AF"
-                    />
+                    <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={[styles.inputWrapper, focus.confirm && styles.inputWrapperFocused]}>
+                  <Feather
+                    name="lock"
+                    size={20}
+                    color={focus.confirm ? Colors.roseRed : '#9CA3AF'}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="Confirm password"
+                    secureTextEntry={!showConfirmPassword}
+                    style={styles.input}
+                    placeholderTextColor="#9CA3AF"
+                    onFocus={() => setFocus({ ...focus, confirm: true })}
+                    onBlur={() => setFocus({ ...focus, confirm: false })}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={styles.eyeIcon}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color="#9CA3AF" />
                   </TouchableOpacity>
                 </View>
               </View>
 
               <TouchableOpacity
-                style={styles.forgotPassword}
-                onPress={onForgotPassword}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
-                onPress={handleSubmit}
+                style={styles.primaryButton}
+                onPress={handleSignUp}
                 activeOpacity={0.9}
-                disabled={loading}
               >
-                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>Sign In</Text>}
+                <Text style={styles.primaryButtonText}>Continue</Text>
               </TouchableOpacity>
               {status && (
                 <Text
@@ -270,45 +266,35 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
 
             <View style={styles.separatorContainer}>
               <View style={styles.separatorLine} />
-              <Text style={styles.separatorText}>or continue with</Text>
+              <Text style={styles.separatorText}>or sign up with</Text>
               <View style={styles.separatorLine} />
             </View>
 
             <View style={styles.socialButtons}>
-              <TouchableOpacity
-                style={[styles.socialButton, styles.googleButton]}
-                onPress={onContinueWithGoogle}
-                activeOpacity={0.9}
-              >
+              <TouchableOpacity style={[styles.socialButton, styles.googleButton]} activeOpacity={0.9}>
                 <Image
-                  source={require('../../assets/logo/google.png')}
+                  source={require('../../../assets/logo/google.png')}
                   style={styles.socialIconImage}
                   resizeMode="contain"
                 />
                 <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.socialButton, styles.appleButton]}
-                onPress={onContinueWithApple}
-                activeOpacity={0.9}
-              >
+              <TouchableOpacity style={[styles.socialButton, styles.appleButton]} activeOpacity={0.9}>
                 <Image
-                  source={require('../../assets/logo/apple.png')}
+                  source={require('../../../assets/logo/apple.png')}
                   style={styles.socialIconImage}
                   resizeMode="contain"
                 />
-                <Text style={[styles.socialButtonText, styles.appleButtonText]}>
-                  Apple
-                </Text>
+                <Text style={[styles.socialButtonText, styles.appleButtonText]}>Apple</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>
-                Don't have an account?{' '}
-              <Text style={styles.signUpLink} onPress={onRequestSignUp}>
-                Sign Up
-              </Text>
+                Already have an account?{' '}
+                <Text style={styles.linkText} onPress={onLoginLinkPress}>
+                  Log in
+                </Text>
               </Text>
             </View>
           </Animated.View>
@@ -380,11 +366,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 2,
     borderColor: Colors.fogGrey,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   inputWrapperFocused: {
     borderColor: Colors.roseRed,
@@ -402,27 +383,11 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 4,
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-    marginTop: 4,
-  },
-  forgotPasswordText: {
-    color: Colors.roseRed,
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: Fonts.semiBold,
-  },
   primaryButton: {
     backgroundColor: Colors.roseRed,
     borderRadius: 24,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: Colors.roseRed,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   primaryButtonDisabled: {
     opacity: 0.7,
@@ -496,7 +461,7 @@ const styles = StyleSheet.create({
     color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
-  signUpLink: {
+  linkText: {
     color: Colors.roseRed,
     fontWeight: '700',
     fontFamily: Fonts.bold,
@@ -515,4 +480,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default SignUpScreen;
+

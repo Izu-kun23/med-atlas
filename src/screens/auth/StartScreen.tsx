@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StatusBar, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../constants/colors';
+import { Colors } from '../../constants/colors';
 
-const appLogo = require('../../assets/logo/app_logo.png');
+const appLogo = require('../../../assets/logo/app_logo.png');
 
 type StartScreenProps = {
   onFinish?: () => void;

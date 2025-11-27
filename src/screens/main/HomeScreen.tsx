@@ -5,38 +5,30 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
   FlatList,
-  ImageBackground,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import SvgIcon from '../components/SvgIcon';
+import SvgIcon from '../../components/SvgIcon';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../navigation/RootStackNavigator';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import StatsCard, { StatsCardProps } from '../components/StatsCard';
-import { db, auth } from '../lib/firebase';
+import { RootStackParamList } from '../../navigation/RootStackNavigator';
+import { Fonts } from '../../constants/fonts';
+import { useTheme } from '../../hooks/useTheme';
+import StatsCard, { StatsCardProps } from '../../components/StatsCard';
+import TabBar from '../../components/TabBar';
+import HealthMetricsCard from '../../components/HealthMetricsCard';
+import { db, auth } from '../../lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { generateAIRecommendations, Recommendation } from '../services/aiRecommendationService';
-import { SCREEN_WIDTH, getResponsivePadding } from '../utils/responsive';
+import { generateAIRecommendations, Recommendation } from '../../services/aiRecommendationService';
+import { SCREEN_WIDTH, getResponsivePadding } from '../../utils/responsive';
 import { Platform } from 'react-native';
 
 type SummaryCard = StatsCardProps & {
   id: string;
 };
 
-type ScheduleItem = {
-  id: string;
-  time: string;
-  title: string;
-  type: 'lecture' | 'study' | 'lab' | 'task' | 'quiz';
-  isSuggested?: boolean;
-  isExamMode?: boolean;
-};
 
 type Document = {
   id: string;
@@ -54,16 +46,15 @@ type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { theme } = useTheme();
   const [userName, setUserName] = useState('User');
   const [isClinicalMode] = useState(false);
-  const [isScheduleExpanded, setIsScheduleExpanded] = useState(true);
   const [isQuickTipsExpanded, setIsQuickTipsExpanded] = useState(true);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
-  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
-  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
   const [suggestions, setSuggestions] = useState<Recommendation[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
+  const [activeTab, setActiveTab] = useState('today');
 
   const currentDate = new Date();
   const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
@@ -71,8 +62,6 @@ const HomeScreen: React.FC = () => {
   const greeting = currentDate.getHours() < 12 ? 'Good Morning' : currentDate.getHours() < 18 ? 'Good Afternoon' : 'Good Evening';
 
   const getSummaryCards = (): SummaryCard[] => {
-    const nextEvent = scheduleItems.length > 0 ? scheduleItems[0] : null;
-    
     return [
       {
         id: '1',
@@ -83,7 +72,7 @@ const HomeScreen: React.FC = () => {
         iconType: 'svg',
         svgIconName: 'book-bookmark',
         color: '#FFFFFF',
-        bgColor: Colors.roseRed,
+        bgColor: theme.colors.primary,
       },
       {
         id: '2',
@@ -92,16 +81,16 @@ const HomeScreen: React.FC = () => {
         subtitle: '2 overdue',
         icon: 'check-circle',
         color: '#FFFFFF',
-        bgColor: Colors.errorRed,
+        bgColor: theme.colors.error,
       },
       {
         id: '3',
         title: 'Next Class',
-        value: nextEvent ? nextEvent.time : '--:--',
-        subtitle: nextEvent ? nextEvent.title : 'No events',
+        value: '--:--',
+        subtitle: 'No events',
         icon: 'clock',
         color: '#FFFFFF',
-        bgColor: Colors.successGreen,
+        bgColor: theme.colors.success,
       },
     ];
   };
@@ -120,7 +109,6 @@ const HomeScreen: React.FC = () => {
   useFocusEffect(
     React.useCallback(() => {
       fetchTodaysNotes();
-      fetchTodaysSchedule();
       fetchAIRecommendations();
     }, [])
   );
@@ -183,8 +171,8 @@ const HomeScreen: React.FC = () => {
         const data = doc.data();
         subjectsMap.set(doc.id, {
           name: data.name || '',
-          color: data.selectedColor || data.color || Colors.roseRed,
-          bgColor: data.bgColor || Colors.roseLight,
+          color: data.selectedColor || data.color || theme.colors.primary,
+          bgColor: data.bgColor || theme.colors.primaryLight,
         });
       });
 
@@ -239,80 +227,6 @@ const HomeScreen: React.FC = () => {
     }
   };
 
-  const fetchTodaysSchedule = async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      setIsLoadingSchedule(false);
-      return;
-    }
-
-    try {
-      setIsLoadingSchedule(true);
-      
-      const today = new Date();
-      const todayString = today.toISOString().split('T')[0];
-
-      const eventsQuery = query(
-        collection(db, 'calendarEvents'),
-        where('userId', '==', user.uid),
-        where('date', '==', todayString)
-      );
-
-      const eventsSnapshot = await getDocs(eventsQuery);
-      const fetchedScheduleItems: ScheduleItem[] = [];
-
-      eventsSnapshot.forEach((doc) => {
-        const data = doc.data();
-        
-        let timeString = 'All Day';
-        if (data.time) {
-          const timeMatch = data.time.match(/(\d{1,2}):(\d{2})/);
-          if (timeMatch) {
-            timeString = `${timeMatch[1]}:${timeMatch[2]}`;
-          }
-        }
-
-        let scheduleType: ScheduleItem['type'] = 'lecture';
-        if (data.type === 'study') {
-          scheduleType = 'study';
-        } else if (data.type === 'lab') {
-          scheduleType = 'lab';
-        } else if (data.type === 'task') {
-          scheduleType = 'task';
-        } else if (data.type === 'exam') {
-          scheduleType = 'quiz';
-        } else {
-          scheduleType = 'lecture';
-        }
-
-        fetchedScheduleItems.push({
-          id: doc.id,
-          time: timeString,
-          title: data.title || 'Untitled Event',
-          type: scheduleType,
-        });
-      });
-
-      fetchedScheduleItems.sort((a, b) => {
-        if (a.time === 'All Day') return 1;
-        if (b.time === 'All Day') return -1;
-        
-        const timeA = a.time.split(':').map(Number);
-        const timeB = b.time.split(':').map(Number);
-        const minutesA = timeA[0] * 60 + timeA[1];
-        const minutesB = timeB[0] * 60 + timeB[1];
-        return minutesA - minutesB;
-      });
-
-      setScheduleItems(fetchedScheduleItems);
-    } catch (error: any) {
-      console.error('Error fetching today\'s schedule:', error);
-      setScheduleItems([]);
-    } finally {
-      setIsLoadingSchedule(false);
-    }
-  };
-
   const fetchAIRecommendations = async () => {
     setIsLoadingSuggestions(true);
     try {
@@ -323,57 +237,6 @@ const HomeScreen: React.FC = () => {
       setSuggestions([]);
     } finally {
       setIsLoadingSuggestions(false);
-    }
-  };
-
-  const getScheduleIcon = (type: ScheduleItem['type']) => {
-    switch (type) {
-      case 'lecture':
-        return 'video';
-      case 'study':
-        return 'book-open';
-      case 'lab':
-        return 'activity';
-      case 'task':
-        return 'file-text';
-      case 'quiz':
-        return 'edit';
-      default:
-        return 'circle';
-    }
-  };
-
-  const getScheduleColor = (type: ScheduleItem['type']) => {
-    switch (type) {
-      case 'lecture':
-        return Colors.roseRed;
-      case 'study':
-        return Colors.successGreen;
-      case 'lab':
-        return Colors.warningAmber;
-      case 'task':
-        return Colors.errorRed;
-      case 'quiz':
-        return Colors.roseDark;
-      default:
-        return Colors.coolGrey;
-    }
-  };
-
-  const getScheduleBgColor = (type: ScheduleItem['type']) => {
-    switch (type) {
-      case 'lecture':
-        return Colors.roseLight;
-      case 'study':
-        return '#ECFDF5';
-      case 'lab':
-        return '#FFFBEB';
-      case 'task':
-        return '#FEF2F2';
-      case 'quiz':
-        return Colors.roseLight;
-      default:
-        return Colors.fogGrey;
     }
   };
 
@@ -390,27 +253,6 @@ const HomeScreen: React.FC = () => {
     />
   );
 
-  const renderScheduleItem = (item: ScheduleItem) => (
-    <TouchableOpacity
-      style={styles.scheduleItem}
-      activeOpacity={0.75}
-      onPress={() => {
-        (navigation as any).navigate('Calendar');
-      }}
-    >
-      <View style={[styles.scheduleIconContainer, { backgroundColor: getScheduleBgColor(item.type) }]}>
-        <SvgIcon name="calendar-clock" size={20} color={getScheduleColor(item.type)} />
-      </View>
-      <View style={styles.scheduleMiddle}>
-        <View style={styles.scheduleTimeAndTitle}>
-          <Text style={styles.scheduleTime}>{item.time}</Text>
-          <Text style={styles.scheduleTitle}>{item.title}</Text>
-        </View>
-      </View>
-      <Feather name="chevron-right" size={18} color={Colors.coolGrey} />
-    </TouchableOpacity>
-  );
-
   const getDocIconColor = (doc: Document) => {
     return doc.subjectColor;
   };
@@ -422,20 +264,20 @@ const HomeScreen: React.FC = () => {
   const getTagColor = (tag: string) => {
     switch (tag) {
       case 'Recent':
-        return Colors.roseRed;
+        return theme.colors.primary;
       case 'Clinical':
-        return Colors.errorRed;
+        return theme.colors.error;
       case 'Exam Prep':
-        return Colors.warningAmber;
+        return theme.colors.warning;
       default:
-        return Colors.roseRed;
+        return theme.colors.primary;
     }
   };
 
   const renderDocumentCard = (doc: Document) => (
     <TouchableOpacity
       key={doc.id}
-      style={styles.documentCard}
+      style={[styles.documentCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
       activeOpacity={0.75}
       onPress={() => {
         (navigation as any).navigate('Subjects', {
@@ -461,10 +303,10 @@ const HomeScreen: React.FC = () => {
         <View style={[styles.decorativeCircle2, { opacity: 0.1 }]} />
       </View>
 
-      {/* White Content Section */}
-      <View style={styles.docContent}>
-        <Text style={styles.docDate}>{doc.date}</Text>
-        <Text style={styles.docTitle} numberOfLines={2}>
+      {/* Content Section */}
+      <View style={[styles.docContent, { backgroundColor: theme.colors.card }]}>
+        <Text style={[styles.docDate, { color: theme.colors.textSecondary }]}>{doc.date}</Text>
+        <Text style={[styles.docTitle, { color: theme.colors.text }]} numberOfLines={2}>
           {doc.title}
         </Text>
         {doc.tags.length > 0 ? (
@@ -476,7 +318,7 @@ const HomeScreen: React.FC = () => {
             ))}
           </View>
         ) : (
-          <Text style={styles.docSubject} numberOfLines={1}>
+          <Text style={[styles.docSubject, { color: theme.colors.textSecondary }]} numberOfLines={1}>
             {doc.subject}
           </Text>
         )}
@@ -486,7 +328,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView 
-      style={styles.safeArea} 
+      style={[styles.safeArea, { backgroundColor: theme.colors.background }]} 
       edges={Platform.OS === 'android' ? ['top', 'bottom'] : ['top']}
     >
       <ScrollView 
@@ -499,68 +341,117 @@ const HomeScreen: React.FC = () => {
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
             <View style={styles.headerContent}>
-              <View style={styles.profileAvatar}>
+              <View style={[styles.profileAvatar, { backgroundColor: theme.colors.primary }]}>
                 <Text style={styles.profileAvatarText}>{userName.charAt(0)}</Text>
               </View>
               <View style={styles.headerText}>
-                <Text style={styles.greeting}>Hi! {userName} 👋</Text>
-                <Text style={styles.headerSubtitle}>Let's explore your notes</Text>
+                <Text style={[styles.greeting, { color: theme.colors.text }]}>Hi! {userName} 👋</Text>
+                <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>Let's explore your notes</Text>
               </View>
             </View>
-            <TouchableOpacity activeOpacity={0.7}>
-              <Feather name="bell" size={24} color={Colors.darkSlate} />
-            </TouchableOpacity>
+            <View style={styles.headerIcons}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={styles.headerIcon}
+                onPress={() => navigation.navigate('Messages')}
+              >
+                <Feather name="message-circle" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.7} style={styles.headerIcon}>
+                <Feather name="bell" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Today's Notes Section with Tabs */}
+        <View style={styles.section}>
+          <TabBar
+            tabs={[
+              { id: 'today', label: 'Today' },
+              { id: 'recent', label: 'Recent' },
+              { id: 'all', label: 'All Notes' },
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+          
+          <View style={styles.tabContent}>
+            {isLoadingDocuments ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Loading notes...</Text>
+              </View>
+            ) : documents.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.documentsScroll}
+              >
+                {documents.map((doc) => renderDocumentCard(doc))}
+              </ScrollView>
+            ) : (
+              <View style={styles.emptyState}>
+                <Feather name="file-text" size={32} color={theme.colors.textTertiary} />
+                <Text style={[styles.emptyStateText, { color: theme.colors.text }]}>No notes saved today</Text>
+                <Text style={[styles.emptyStateSubtext, { color: theme.colors.textSecondary }]}>Start taking notes to see them here</Text>
+              </View>
+            )}
           </View>
         </View>
 
         {/* Tutorial Banner */}
         <View style={styles.section}>
-          <View style={styles.tutorialBanner}>
+          <View style={[styles.tutorialBanner, { backgroundColor: theme.colors.primary }]}>
             <View style={styles.tutorialContent}>
               <Text style={styles.tutorialTitle}>{tutorialCard.title}</Text>
               <Text style={styles.tutorialDescription}>{tutorialCard.description}</Text>
-              <TouchableOpacity style={styles.tutorialButton} activeOpacity={0.8}>
-                <Feather name="play" size={16} color="#FFFFFF" />
-                <Text style={styles.tutorialButtonText}>{tutorialCard.action}</Text>
+              <TouchableOpacity style={[styles.tutorialButton, { backgroundColor: theme.colors.white }]} activeOpacity={0.8}>
+                <Text style={[styles.tutorialButtonText, { color: theme.colors.primary }]}>{tutorialCard.action}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.tutorialIcon}>
               <View style={styles.tutorialIconBox}>
-                <Feather name="layers" size={40} color={Colors.roseRed} />
+                <Feather name="layers" size={40} color={theme.colors.white} />
               </View>
             </View>
           </View>
         </View>
 
-        {/* Let's Jump In Section */}
+        {/* Study Progress Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Let's jump in</Text>
-            <TouchableOpacity activeOpacity={0.7}>
-              <Feather name="chevron-right" size={24} color={Colors.roseRed} />
-            </TouchableOpacity>
-          </View>
-
-          {isLoadingDocuments ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={Colors.roseRed} />
-              <Text style={styles.loadingText}>Loading today's notes...</Text>
-            </View>
-          ) : documents.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.documentsScroll}
-            >
-              {documents.map((doc) => renderDocumentCard(doc))}
-            </ScrollView>
-          ) : (
-            <View style={styles.emptyState}>
-              <Feather name="file-text" size={32} color={Colors.coolGrey} />
-              <Text style={styles.emptyStateText}>No notes saved today</Text>
-              <Text style={styles.emptyStateSubtext}>Start taking notes to see them here</Text>
-            </View>
-          )}
+          <HealthMetricsCard
+            title="Study Progress"
+            period="Weekly"
+            avgValue={getSummaryCards()[0]?.value || '0h'}
+            avgLabel="Study Hours"
+            deepValue={getSummaryCards()[1]?.value || '0'}
+            deepLabel="Tasks"
+            chartData={[
+              { day: 'S', value: 2 },
+              { day: 'M', value: 2.5 },
+              { day: 'T', value: 1.5 },
+              { day: 'W', value: 3 },
+              { day: 'T', value: 2.8 },
+              { day: 'F', value: 1.2 },
+              { day: 'S', value: 2.5 },
+            ]}
+            otherMetrics={[
+              {
+                label: 'Notes Created',
+                value: String(documents.length),
+                unit: 'today',
+                icon: 'file-text',
+              },
+              {
+                label: 'Progress',
+                value: '62',
+                unit: '%',
+                icon: 'trending-up',
+                progress: 62,
+              },
+            ]}
+          />
         </View>
 
         {/* Stats Cards */}
@@ -576,14 +467,13 @@ const HomeScreen: React.FC = () => {
             snapToInterval={SCREEN_WIDTH * 0.55 + 16}
             decelerationRate="fast"
             snapToAlignment="start"
-            extraData={scheduleItems}
           />
         </View>
 
         {/* Focus Card */}
         <View style={styles.section}>
           <TouchableOpacity
-            style={styles.focusCard}
+            style={[styles.focusCard, { backgroundColor: theme.colors.primary }]}
             activeOpacity={0.85}
             onPress={() => {
               navigation.navigate('StudySession' as never);
@@ -594,45 +484,9 @@ const HomeScreen: React.FC = () => {
               <Text style={styles.focusSubtitle}>Start a study session</Text>
             </View>
             <View style={styles.focusArrow}>
-              <Feather name="arrow-right" size={24} color={Colors.white} />
+              <Feather name="arrow-right" size={24} color={theme.colors.white} />
             </View>
           </TouchableOpacity>
-        </View>
-
-        {/* Today's Schedule */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            activeOpacity={0.7}
-            onPress={() => setIsScheduleExpanded(!isScheduleExpanded)}
-          >
-            <Text style={styles.sectionTitle}>Today's Schedule</Text>
-            <Feather
-              name={isScheduleExpanded ? 'chevron-down' : 'chevron-right'}
-              size={24}
-              color={Colors.roseRed}
-            />
-          </TouchableOpacity>
-          {isScheduleExpanded && (
-            <View style={styles.scheduleContainer}>
-              {isLoadingSchedule ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={Colors.roseRed} />
-                  <Text style={styles.loadingText}>Loading schedule...</Text>
-                </View>
-              ) : scheduleItems.length > 0 ? (
-                scheduleItems.map((item) => (
-                  <View key={item.id}>{renderScheduleItem(item)}</View>
-                ))
-              ) : (
-                <View style={styles.emptyScheduleState}>
-                  <SvgIcon name="calendar-lines" size={48} color={Colors.coolGrey} />
-                  <Text style={styles.emptyScheduleText}>No events scheduled for today</Text>
-                  <Text style={styles.emptyScheduleSubtext}>Add events in the Calendar tab</Text>
-                </View>
-              )}
-            </View>
-          )}
         </View>
 
         {/* AI Insights */}
@@ -643,29 +497,29 @@ const HomeScreen: React.FC = () => {
             onPress={() => setIsQuickTipsExpanded(!isQuickTipsExpanded)}
           >
             <View style={styles.insightHeaderLeft}>
-              <Text style={styles.sectionTitle}>Quick Tips</Text>
-              <View style={styles.aiBadge}>
-                <Feather name="zap" size={12} color={Colors.warningAmber} />
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Quick Tips</Text>
+              <View style={[styles.aiBadge, { backgroundColor: theme.colors.primaryLight }]}>
+                <Feather name="zap" size={12} color={theme.colors.warning} />
               </View>
             </View>
             <Feather
               name={isQuickTipsExpanded ? 'chevron-down' : 'chevron-right'}
               size={24}
-              color={Colors.roseRed}
+              color={theme.colors.primary}
             />
           </TouchableOpacity>
           {isQuickTipsExpanded && (
             <View style={styles.suggestionsContainer}>
               {isLoadingSuggestions ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={Colors.roseRed} />
-                  <Text style={styles.loadingText}>Generating personalized tips...</Text>
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Generating personalized tips...</Text>
                 </View>
               ) : suggestions.length === 0 ? (
                 <View style={styles.emptyState}>
-                  <Feather name="lightbulb" size={48} color="#D1D5DB" />
-                  <Text style={styles.emptyStateTitle}>No recommendations yet</Text>
-                  <Text style={styles.emptyStateText}>
+                  <Feather name="lightbulb" size={48} color={theme.colors.textTertiary} />
+                  <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>No recommendations yet</Text>
+                  <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
                     Start studying and taking quizzes to get personalized tips
                   </Text>
                 </View>
@@ -673,7 +527,7 @@ const HomeScreen: React.FC = () => {
                 suggestions.map((suggestion) => (
                   <TouchableOpacity 
                     key={suggestion.id} 
-                    style={styles.suggestionItem} 
+                    style={[styles.suggestionItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]} 
                     activeOpacity={0.75}
                     onPress={() => {
                       if (suggestion.action === 'Start Quiz') {
@@ -691,25 +545,25 @@ const HomeScreen: React.FC = () => {
                       }
                     }}
                   >
-                    <View style={styles.suggestionIconContainer}>
+                    <View style={[styles.suggestionIconContainer, { backgroundColor: theme.colors.primaryLight }]}>
                       <SvgIcon 
                         name="dice-alt" 
                         size={18} 
                         color={
                           suggestion.priority === 'high' 
-                            ? Colors.errorRed 
+                            ? theme.colors.error 
                             : suggestion.priority === 'medium' 
-                            ? Colors.warningAmber 
-                            : Colors.successGreen
+                            ? theme.colors.warning 
+                            : theme.colors.success
                         } 
                       />
                     </View>
                     <View style={styles.suggestionContent}>
-                      <Text style={styles.suggestionText}>{suggestion.text}</Text>
+                      <Text style={[styles.suggestionText, { color: theme.colors.text }]}>{suggestion.text}</Text>
                       {suggestion.action && (
                         <View style={styles.actionButtonSmall}>
-                          <Text style={styles.actionButtonText}>{suggestion.action}</Text>
-                          <Feather name="arrow-right" size={12} color={Colors.roseRed} />
+                          <Text style={[styles.actionButtonText, { color: theme.colors.primary }]}>{suggestion.action}</Text>
+                          <Feather name="arrow-right" size={12} color={theme.colors.primary} />
                         </View>
                       )}
                     </View>
@@ -729,7 +583,6 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.white,
     ...(Platform.OS === 'android' && {
       paddingTop: 0,
     }),
@@ -756,18 +609,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  headerIcon: {
+    padding: 4,
+  },
   profileAvatar: {
     width: 50,
     height: 50,
-    borderRadius: 25,
-    backgroundColor: Colors.roseRed,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
   },
   profileAvatarText: {
     fontSize: 20,
@@ -781,30 +636,29 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   section: {
     marginBottom: 28,
     paddingHorizontal: 20,
   },
+  tabContent: {
+    marginTop: 16,
+    gap: 16,
+  },
+  timeSlotSection: {
+    marginTop: 8,
+  },
   tutorialBanner: {
     flexDirection: 'row',
-    backgroundColor: Colors.roseRed,
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 24,
     alignItems: 'center',
-    shadowColor: Colors.roseRed,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 6,
     overflow: 'hidden',
   },
   tutorialContent: {
@@ -824,19 +678,16 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   tutorialButton: {
-    flexDirection: 'row',
-    backgroundColor: Colors.white,
-    borderRadius: 40,
+    borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 10,
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
     alignSelf: 'flex-start',
   },
   tutorialButtonText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Colors.black,
     fontFamily: Fonts.bold,
   },
   tutorialIcon: {
@@ -863,7 +714,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   documentsScroll: {
@@ -871,16 +721,16 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   documentCard: {
-    width: 180,
-    height: 220,
-    backgroundColor: Colors.white,
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 8,
+    width: 200,
+    height: 240,
+    borderRadius: 28,
+    borderWidth: 1,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   documentCardInner: {
     position: 'relative',
@@ -894,14 +744,9 @@ const styles = StyleSheet.create({
   docIconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
   decorativeCircle1: {
     position: 'absolute',
@@ -923,14 +768,12 @@ const styles = StyleSheet.create({
   },
   docContent: {
     flex: 1,
-    backgroundColor: Colors.white,
     padding: 16,
     gap: 6,
   },
   docDate: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.coolGrey,
     fontFamily: Fonts.semiBold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -938,7 +781,6 @@ const styles = StyleSheet.create({
   docTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     lineHeight: 20,
     flex: 1,
@@ -950,14 +792,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   docTag: {
-    borderRadius: 10,
+    borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
   },
   docTagText: {
     fontSize: 10,
@@ -969,7 +806,6 @@ const styles = StyleSheet.create({
   docSubject: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.coolGrey,
     fontFamily: Fonts.semiBold,
     marginTop: 4,
   },
@@ -979,15 +815,9 @@ const styles = StyleSheet.create({
   },
   focusCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.roseRed,
-    borderRadius: 22,
+    borderRadius: 28,
     padding: 24,
     alignItems: 'center',
-    shadowColor: Colors.roseRed,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
   },
   focusTextContent: {
     flex: 1,
@@ -995,7 +825,7 @@ const styles = StyleSheet.create({
   focusTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: Colors.white,
+    color: '#FFFFFF',
     fontFamily: Fonts.bold,
     marginBottom: 4,
   },
@@ -1007,51 +837,6 @@ const styles = StyleSheet.create({
   focusArrow: {
     marginLeft: 12,
   },
-  scheduleContainer: {
-    gap: 12,
-  },
-  scheduleItem: {
-    flexDirection: 'row',
-    backgroundColor: Colors.white,
-    borderRadius: 18,
-    padding: 16,
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: Colors.fogGrey,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  scheduleIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scheduleMiddle: {
-    flex: 1,
-    gap: 4,
-  },
-  scheduleTimeAndTitle: {
-    gap: 2,
-  },
-  scheduleTime: {
-    fontSize: 11,
-    color: Colors.coolGrey,
-    fontFamily: Fonts.semiBold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  scheduleTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.darkSlate,
-    fontFamily: Fonts.semiBold,
-  },
   insightHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1060,8 +845,7 @@ const styles = StyleSheet.create({
   aiBadge: {
     width: 24,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFBEB',
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1070,24 +854,22 @@ const styles = StyleSheet.create({
   },
   suggestionItem: {
     flexDirection: 'row',
-    backgroundColor: Colors.white,
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 16,
     gap: 12,
     alignItems: 'flex-start',
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   suggestionIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 10,
-    backgroundColor: '#FFFBEB',
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -1098,7 +880,6 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 14,
-    color: Colors.darkSlate,
     fontFamily: Fonts.semiBold,
     lineHeight: 20,
   },
@@ -1111,7 +892,6 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 12,
-    color: Colors.roseRed,
     fontFamily: Fonts.bold,
     letterSpacing: 0.3,
   },
@@ -1127,7 +907,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   emptyState: {
@@ -1139,7 +918,6 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.darkSlate,
     fontFamily: Fonts.semiBold,
     marginTop: 12,
     marginBottom: 4,
@@ -1147,7 +925,6 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginTop: 12,
     marginBottom: 6,
@@ -1155,27 +932,6 @@ const styles = StyleSheet.create({
   },
   emptyStateSubtext: {
     fontSize: 13,
-    color: Colors.coolGrey,
-    fontFamily: Fonts.regular,
-    textAlign: 'center',
-  },
-  emptyScheduleState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-  },
-  emptyScheduleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.darkSlate,
-    fontFamily: Fonts.semiBold,
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  emptyScheduleSubtext: {
-    fontSize: 12,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     textAlign: 'center',
   },

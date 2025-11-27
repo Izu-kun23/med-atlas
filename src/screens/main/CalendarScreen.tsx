@@ -14,18 +14,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import SvgIcon from '../components/SvgIcon';
+import SvgIcon from '../../components/SvgIcon';
+import TabBar from '../../components/TabBar';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Toast from 'react-native-toast-message';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import { googleCalendarService } from '../services/googleCalendarService';
-import { db, auth } from '../lib/firebase';
+import { Fonts } from '../../constants/fonts';
+import { useTheme } from '../../hooks/useTheme';
+import { googleCalendarService } from '../../services/googleCalendarService';
+import { db, auth } from '../../lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { Alert } from 'react-native';
-import { getResponsivePadding, SCREEN_WIDTH } from '../utils/responsive';
+import { getResponsivePadding, SCREEN_WIDTH } from '../../utils/responsive';
 
-const googleLogo = require('../../assets/logo/google.png');
+const googleLogo = require('../../../assets/logo/google.png');
 
 type CalendarEvent = {
   id: string;
@@ -38,6 +39,7 @@ type CalendarEvent = {
 };
 
 const CalendarScreen: React.FC = () => {
+  const { theme } = useTheme();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -49,6 +51,7 @@ const CalendarScreen: React.FC = () => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [activeTab, setActiveTab] = useState('month');
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
@@ -88,7 +91,7 @@ const CalendarScreen: React.FC = () => {
             title: data.title,
             time: data.time || undefined,
             type: data.type,
-            color: data.color || eventTypeColors[data.type as CalendarEvent['type']] || Colors.roseRed,
+            color: data.color || eventTypeColors[data.type as CalendarEvent['type']] || theme.colors.primary,
             description: data.description || undefined,
           });
         });
@@ -578,6 +581,19 @@ const CalendarScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Tab Navigation */}
+        <View style={styles.tabSection}>
+          <TabBar
+            tabs={[
+              { id: 'month', label: 'Month' },
+              { id: 'week', label: 'Week' },
+              { id: 'day', label: 'Day' },
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </View>
+
         {/* Month Navigation */}
         <View style={styles.monthHeader}>
           <TouchableOpacity
@@ -665,7 +681,7 @@ const CalendarScreen: React.FC = () => {
         {/* Selected Date Events */}
         {isLoadingEvents ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.roseRed} />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
             <Text style={styles.loadingText}>Loading events...</Text>
           </View>
         ) : selectedDateEvents.length > 0 ? (
@@ -712,7 +728,7 @@ const CalendarScreen: React.FC = () => {
                     onPress={() => handleDeleteEvent(event.id)}
                     activeOpacity={0.7}
                   >
-                    <Feather name="trash-2" size={20} color={Colors.errorRed} />
+                    <Feather name="trash-2" size={20} color={theme.colors.error} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -851,8 +867,8 @@ const CalendarScreen: React.FC = () => {
                       style={[
                         styles.typeButton,
                         newEvent.type === type && {
-                          backgroundColor: Colors.roseRed,
-                          borderColor: Colors.roseRed,
+                          backgroundColor: theme.colors.primary,
+                          borderColor: theme.colors.primary,
                         },
                       ]}
                       onPress={() => setNewEvent({ ...newEvent, type })}
@@ -956,7 +972,7 @@ const CalendarScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.white,
@@ -978,7 +994,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 32,
     backgroundColor: Colors.roseRed,
     justifyContent: 'center',
     alignItems: 'center',
@@ -988,6 +1004,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 32,
+  },
+  tabSection: {
+    paddingHorizontal: getResponsivePadding(20),
+    marginBottom: 20,
   },
   monthHeader: {
     flexDirection: 'row',
@@ -999,7 +1019,7 @@ const styles = StyleSheet.create({
   monthNavButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 28,
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1014,17 +1034,12 @@ const styles = StyleSheet.create({
   },
   calendarContainer: {
     backgroundColor: Colors.white,
-    borderRadius: Platform.OS === 'android' ? 20 : 24,
+    borderRadius: 28,
     marginHorizontal: Platform.OS === 'android' ? getResponsivePadding(20) : 34,
     marginBottom: Platform.OS === 'android' ? 20 : 22,
     padding: Platform.OS === 'android' ? 16 : 20,
     borderWidth: 1,
     borderColor: Colors.fogGrey,
-    shadowColor: Platform.OS === 'android' ? '#000' : undefined,
-    shadowOffset: Platform.OS === 'android' ? { width: 0, height: 2 } : undefined,
-    shadowOpacity: Platform.OS === 'android' ? 0.08 : undefined,
-    shadowRadius: Platform.OS === 'android' ? 8 : undefined,
-    elevation: Platform.OS === 'android' ? 4 : undefined,
   },
   dayHeaders: {
     flexDirection: 'row',
@@ -1056,7 +1071,7 @@ const styles = StyleSheet.create({
     maxHeight: Platform.OS === 'android' ? 56 : 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: Platform.OS === 'android' ? 12 : 14,
+    borderRadius: 20,
     marginBottom: Platform.OS === 'android' ? 4 : 6,
     position: 'relative',
   },
@@ -1070,11 +1085,6 @@ const styles = StyleSheet.create({
   },
   selectedCell: {
     backgroundColor: Colors.roseRed,
-    shadowColor: Colors.roseRed,
-    shadowOffset: { width: 0, height: Platform.OS === 'android' ? 2 : 4 },
-    shadowOpacity: Platform.OS === 'android' ? 0.3 : 0.4,
-    shadowRadius: Platform.OS === 'android' ? 4 : 8,
-    elevation: Platform.OS === 'android' ? 6 : 4,
   },
   dayText: {
     fontSize: Platform.OS === 'android' ? 16 : 17,
@@ -1124,7 +1134,7 @@ const styles = StyleSheet.create({
   eventCard: {
     flexDirection: 'row',
     backgroundColor: Colors.white,
-    borderRadius: 20,
+    borderRadius: 28,
     marginBottom: 16,
     overflow: 'hidden',
     borderWidth: 1,
@@ -1165,7 +1175,7 @@ const styles = StyleSheet.create({
   eventActionButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 28,
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1218,7 +1228,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: Colors.white,
-    borderRadius: 20,
+    borderRadius: 28,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
@@ -1240,7 +1250,7 @@ const styles = StyleSheet.create({
   syncIconContainer: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -1273,8 +1283,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Colors.white,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     maxHeight: '90%',
     paddingBottom: 40,
   },
@@ -1297,7 +1307,7 @@ const styles = StyleSheet.create({
   modalCloseButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 28,
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1328,7 +1338,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 18,
     fontSize: 17,
     color: Colors.darkSlate,
@@ -1348,7 +1358,7 @@ const styles = StyleSheet.create({
   typeButton: {
     paddingHorizontal: 20,
     paddingVertical: 14,
-    borderRadius: 24,
+    borderRadius: 28,
     borderWidth: 0,
     backgroundColor: '#F3F4F6',
   },
@@ -1365,7 +1375,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 18,
     gap: 14,
     borderWidth: 1,
@@ -1379,7 +1389,7 @@ const styles = StyleSheet.create({
   },
   addEventButton: {
     backgroundColor: Colors.roseRed,
-    borderRadius: 16,
+    borderRadius: 28,
     padding: 20,
     alignItems: 'center',
     marginTop: 16,

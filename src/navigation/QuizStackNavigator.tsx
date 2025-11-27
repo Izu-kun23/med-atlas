@@ -1,7 +1,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import QuizHomeScreen from '../screens/QuizHomeScreen';
-import QuizScreen from '../screens/QuizScreen';
+import QuizHomeScreen from '../screens/quiz/QuizHomeScreen';
+import QuizScreen from '../screens/quiz/QuizScreen';
 
 export type QuizStackParamList = {
   QuizHome: undefined;

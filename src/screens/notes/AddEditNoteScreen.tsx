@@ -15,9 +15,9 @@ import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Toast from 'react-native-toast-message';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import { db, auth } from '../lib/firebase';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
+import { db, auth } from '../../lib/firebase';
 import {
   collection,
   addDoc,
@@ -25,9 +25,9 @@ import {
   updateDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { RootStackParamList } from '../navigation/RootStackNavigator';
-import { renderFormattedContent } from '../utils/formatNoteContent';
-import FormattedTextEditor from '../components/FormattedTextEditor';
+import { RootStackParamList } from '../../navigation/RootStackNavigator';
+import { renderFormattedContent } from '../../utils/formatNoteContent';
+import FormattedTextEditor from '../../components/FormattedTextEditor';
 
 type AddEditNoteRouteProp = RouteProp<RootStackParamList, 'AddEditNote'>;
 type AddEditNoteNavigationProp = StackNavigationProp<RootStackParamList>;

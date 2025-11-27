@@ -1,10 +1,10 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import SubjectsScreen from '../screens/SubjectsScreen';
-import SubjectDetailsScreen from '../screens/SubjectDetailsScreen';
-import AddNoteScreen from '../screens/AddNoteScreen';
-import AddSubjectScreen from '../screens/AddSubjectScreen';
-import AddFolderScreen from '../screens/AddFolderScreen';
+import SubjectsScreen from '../screens/subjects/SubjectsScreen';
+import SubjectDetailsScreen from '../screens/subjects/SubjectDetailsScreen';
+import AddNoteScreen from '../screens/notes/AddNoteScreen';
+import AddSubjectScreen from '../screens/subjects/AddSubjectScreen';
+import AddFolderScreen from '../screens/subjects/AddFolderScreen';
 
 export type SubjectsStackParamList = {
   SubjectsList: undefined;

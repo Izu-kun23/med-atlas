@@ -1,19 +1,21 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Animated, Dimensions, Easing, StyleSheet, Text, View, ActivityIndicator, StatusBar, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { useBricolageGrotesque } from './src/hooks/useFonts';
-import StartScreen from './src/screens/StartScreen';
-import CarouselScreen from './src/screens/CarouselScreen';
-import LoginScreen from './src/screens/LoginScreen';
-import SignUpScreen from './src/screens/SignUpScreen';
-import OnboardingScreen from './src/screens/OnboardingScreen';
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+import StartScreen from './src/screens/auth/StartScreen';
+import CarouselScreen from './src/screens/auth/CarouselScreen';
+import LoginScreen from './src/screens/auth/LoginScreen';
+import SignUpScreen from './src/screens/auth/SignUpScreen';
+import OnboardingScreen from './src/screens/auth/OnboardingScreen';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function App() {
+function AppContent() {
+  const { theme } = useTheme();
   const { fontsLoaded, fontError } = useBricolageGrotesque();
   const [introPhase, setIntroPhase] = useState<'start' | 'carousel'>('start');
   const [appPhase, setAppPhase] = useState<'intro' | 'login' | 'signup' | 'onboarding' | 'home'>('intro');
@@ -93,6 +95,7 @@ export default function App() {
     };
   }, [transition]);
 
+
   if (!fontsLoaded) {
     return (
       <SafeAreaProvider>
@@ -107,62 +110,72 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar
-        barStyle={Platform.OS === 'android' ? 'dark-content' : 'dark-content'}
-        backgroundColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
+        barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={Platform.OS === 'android' ? theme.colors.background : undefined}
         translucent={Platform.OS === 'android'}
       />
-      {appPhase === 'home' ? (
-        <NavigationContainer>
-          <RootStackNavigator userRole={userRole} />
-        </NavigationContainer>
-      ) : appPhase === 'login' ? (
-        <LoginScreen onRequestSignUp={handleShowSignUp} onLogin={handleLogin} />
-      ) : appPhase === 'signup' ? (
-        <SignUpScreen onLoginLinkPress={() => setAppPhase('login')} onContinue={handleSignUpComplete} />
-      ) : appPhase === 'onboarding' && pendingCredentials ? (
-        <OnboardingScreen
-          credentials={{
-            fullName: pendingCredentials.fullName,
-            email: pendingCredentials.email,
-            password: pendingCredentials.password,
-          }}
-          onComplete={(responses) => {
-            setPendingCredentials(null);
-            setIsAuthenticated(true);
-            setUserRole(responses.role);
-            setAppPhase('home');
-          }}
-        />
-      ) : (
-        <View style={styles.container}>
-          {startVisible && (
-            <Animated.View
-              style={[
-                styles.absoluteFill,
-                { transform: [{ translateX: transforms.startScreenTranslate }] },
-              ]}
-            >
-              <StartScreen onFinish={handleStartFinish} />
-            </Animated.View>
-          )}
+      <View style={{ flex: 1 }}>
+        {appPhase === 'home' ? (
+          <NavigationContainer>
+            <RootStackNavigator userRole={userRole} />
+          </NavigationContainer>
+        ) : appPhase === 'login' ? (
+          <LoginScreen onRequestSignUp={handleShowSignUp} onLogin={handleLogin} />
+        ) : appPhase === 'signup' ? (
+          <SignUpScreen onLoginLinkPress={() => setAppPhase('login')} onContinue={handleSignUpComplete} />
+        ) : appPhase === 'onboarding' && pendingCredentials ? (
+          <OnboardingScreen
+            credentials={{
+              fullName: pendingCredentials.fullName,
+              email: pendingCredentials.email,
+              password: pendingCredentials.password,
+            }}
+            onComplete={(responses) => {
+              setPendingCredentials(null);
+              setIsAuthenticated(true);
+              setUserRole(responses.role);
+              setAppPhase('home');
+            }}
+          />
+        ) : (
+          <View style={styles.container}>
+            {startVisible && (
+              <Animated.View
+                style={[
+                  styles.absoluteFill,
+                  { transform: [{ translateX: transforms.startScreenTranslate }] },
+                ]}
+              >
+                <StartScreen onFinish={handleStartFinish} />
+              </Animated.View>
+            )}
 
-          {(carouselVisible || introPhase === 'carousel') && (
-            <Animated.View
-              style={[
-                styles.absoluteFill,
-                {
-                  transform: [{ translateX: transforms.carouselTranslate }],
-                  opacity: transforms.carouselOpacity,
-                },
-              ]}
-            >
-              <CarouselScreen onDone={handleCarouselDone} />
-            </Animated.View>
-          )}
-        </View>
-      )}
-      <Toast />
+            {(carouselVisible || introPhase === 'carousel') && (
+              <Animated.View
+                style={[
+                  styles.absoluteFill,
+                  {
+                    transform: [{ translateX: transforms.carouselTranslate }],
+                    opacity: transforms.carouselOpacity,
+                  },
+                ]}
+              >
+                <CarouselScreen onDone={handleCarouselDone} />
+              </Animated.View>
+            )}
+          </View>
+        )}
+        <Toast />
+      </View>
     </SafeAreaProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

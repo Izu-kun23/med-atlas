@@ -1,9 +1,11 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import TabNavigator from './TabNavigator';
-import StudySessionScreen from '../screens/StudySessionScreen';
-import NoteDetailScreen from '../screens/NoteDetailScreen';
-import AddEditNoteScreen from '../screens/AddEditNoteScreen';
+import StudySessionScreen from '../screens/study/StudySessionScreen';
+import NoteDetailScreen from '../screens/notes/NoteDetailScreen';
+import AddEditNoteScreen from '../screens/notes/AddEditNoteScreen';
+import MessagesScreen from '../screens/messages/MessagesScreen';
+import ChatScreen from '../screens/messages/ChatScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -28,6 +30,12 @@ export type RootStackParamList = {
     noteId?: string;
     noteTitle?: string;
     noteContent?: string;
+  };
+  Messages: undefined;
+  Chat: {
+    friendId: string;
+    friendName: string;
+    chatId: string;
   };
 };
 
@@ -66,6 +74,22 @@ const RootStackNavigator: React.FC<RootStackNavigatorProps> = ({ userRole = 'STU
       <Stack.Screen
         name="AddEditNote"
         component={AddEditNoteScreen}
+        options={{
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen
+        name="Messages"
+        component={MessagesScreen}
+        options={{
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen
+        name="Chat"
+        component={ChatScreen}
         options={{
           headerShown: false,
           gestureEnabled: true,

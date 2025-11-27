@@ -11,8 +11,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
 
 type Slide = {
   key: string;
@@ -30,13 +30,13 @@ const slides: Slide[] = [
     key: 'headline-1',
     title: 'Manage Workload Efficiently',
     subtitle: 'Track rotations, lectures, and clinical duties without missing a beat.',
-    image: require('../../assets/illustrations/illustration1.png'),
+    image: require('../../../assets/illustrations/illustration1.png'),
   },
   {
     key: 'headline-2',
     title: 'Focus Better Every Day',
     subtitle: 'Guided study sessions and smart reminders keep you exam-ready.',
-    image: require('../../assets/illustrations/illustration2.png'),
+    image: require('../../../assets/illustrations/illustration2.png'),
   },
 ];
 

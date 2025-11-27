@@ -2,12 +2,12 @@ import React, { useMemo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UIcons from '../components/icons/UIcons';
-import { Colors } from '../constants/colors';
-import HomeScreen from '../screens/HomeScreen';
+import { useTheme } from '../hooks/useTheme';
+import HomeScreen from '../screens/main/HomeScreen';
 import SubjectsStackNavigator from './SubjectsStackNavigator';
-import CalendarScreen from '../screens/CalendarScreen';
+import CalendarScreen from '../screens/main/CalendarScreen';
 import QuizStackNavigator from './QuizStackNavigator';
-import MoreMenuScreen from '../screens/MoreMenuScreen';
+import MoreMenuScreen from '../screens/main/MoreMenuScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -17,6 +17,7 @@ type TabNavigatorProps = {
 
 const TabNavigator: React.FC<TabNavigatorProps> = ({ userRole = 'STUDENT' }) => {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const isIntern = userRole === 'INTERN' || userRole === 'WORKER';
 
   const screenOptions = ({ route }: { route: any }) => ({
@@ -39,12 +40,12 @@ const TabNavigator: React.FC<TabNavigatorProps> = ({ userRole = 'STUDENT' }) => 
 
       return <UIcons name={iconName} size={size} color={color} />;
     },
-    tabBarActiveTintColor: Colors.roseRed,
-    tabBarInactiveTintColor: Colors.coolGrey,
+    tabBarActiveTintColor: theme.colors.primary,
+    tabBarInactiveTintColor: theme.colors.textSecondary,
     tabBarStyle: {
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colors.card,
       borderTopWidth: 1,
-      borderTopColor: Colors.fogGrey,
+      borderTopColor: theme.colors.border,
       height: 66 + Math.max(insets.bottom - 5, 0),
       paddingBottom: Math.max(insets.bottom, 5),
       paddingTop: 8,

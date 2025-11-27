@@ -14,11 +14,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import { QuizQuestion } from '../utils/quizGenerator';
-import { QuizStackParamList } from '../navigation/QuizStackNavigator';
-import { db, auth } from '../lib/firebase';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
+import { QuizQuestion } from '../../utils/quizGenerator';
+import AnimatedScore from '../../components/AnimatedScore';
+import { QuizStackParamList } from '../../navigation/QuizStackNavigator';
+import { db, auth } from '../../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -284,7 +285,7 @@ const QuizScreen: React.FC = () => {
 
           {/* Options */}
           <View style={styles.optionsContainer}>
-            {currentQuestion.options.slice(0, 4).map((option, index) => {
+            {currentQuestion.options.slice(0, 4).map((option: string, index: number) => {
               const isSelected = selectedAnswer === index;
 
               return (
@@ -416,7 +417,12 @@ const QuizScreen: React.FC = () => {
             score >= 60 ? styles.scoreCircleMedium : 
             styles.scoreCirclePoor
           ]}>
-            <Text style={styles.scoreValue}>{score}%</Text>
+            <AnimatedScore
+              value={score}
+              suffix="%"
+              style={styles.scoreValue}
+              duration={2000}
+            />
           </View>
           <Text style={styles.resultsTitle}>Quiz Complete!</Text>
           <Text style={styles.resultsSubtitle}>
@@ -651,11 +657,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     borderWidth: 1,
     borderColor: Colors.fogGrey,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
   questionText: {
     fontSize: 20,

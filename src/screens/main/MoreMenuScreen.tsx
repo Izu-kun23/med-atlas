@@ -16,9 +16,11 @@ import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import Toast from 'react-native-toast-message';
-import { Fonts } from '../constants/fonts';
-import { Colors } from '../constants/colors';
-import { db, auth, storage } from '../lib/firebase';
+import { Fonts } from '../../constants/fonts';
+import { Colors } from '../../constants/colors';
+import { useTheme } from '../../contexts/ThemeContext';
+import { PRIMARY_COLORS, PrimaryColorOption } from '../../types/theme';
+import { db, auth, storage } from '../../lib/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { signOut } from 'firebase/auth';
@@ -36,11 +38,13 @@ type UserData = {
 };
 
 const MoreMenuScreen: React.FC = () => {
+  const { theme, toggleTheme, setThemeMode, setPrimaryColor, isDark } = useTheme();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
   const [editingLocation, setEditingLocation] = useState('');
   const [selectedRole, setSelectedRole] = useState<'STUDENT' | 'INTERN' | 'WORKER'>('STUDENT');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -367,10 +371,10 @@ const MoreMenuScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.roseRed} />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Loading profile...</Text>
         </View>
       </SafeAreaView>
     );
@@ -378,24 +382,24 @@ const MoreMenuScreen: React.FC = () => {
 
   if (!userData) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.errorText}>Failed to load profile</Text>
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>Failed to load profile</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile & Settings</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Profile & Settings</Text>
         </View>
 
         {/* Profile Card */}
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <TouchableOpacity
             onPress={handleImagePicker}
             disabled={isUploadingImage}
@@ -403,8 +407,8 @@ const MoreMenuScreen: React.FC = () => {
             style={styles.avatarTouchable}
           >
             {isUploadingImage ? (
-              <View style={[styles.avatarContainer, { backgroundColor: Colors.fogGrey }]}>
-                <ActivityIndicator size="small" color={Colors.white} />
+              <View style={[styles.avatarContainer, { backgroundColor: theme.colors.surface }]}>
+                <ActivityIndicator size="small" color={theme.colors.white} />
               </View>
             ) : userData.profileImageUrl ? (
               <Image
@@ -416,11 +420,11 @@ const MoreMenuScreen: React.FC = () => {
                 <Text style={styles.avatarText}>{userData.fullName.charAt(0).toUpperCase()}</Text>
               </View>
             )}
-            <View style={styles.editImageIcon}>
-              <Feather name="camera" size={16} color={Colors.white} />
+            <View style={[styles.editImageIcon, { backgroundColor: theme.colors.primary }]}>
+              <Feather name="camera" size={16} color={theme.colors.white} />
             </View>
           </TouchableOpacity>
-          <Text style={styles.profileName}>{userData.fullName}</Text>
+          <Text style={[styles.profileName, { color: theme.colors.text }]}>{userData.fullName}</Text>
           <View style={[styles.roleBadge, { backgroundColor: getRoleColor(userData.role) + '20' }]}>
             <Text style={[styles.roleText, { color: getRoleColor(userData.role) }]}>
               {getRoleLabel(userData.role)}
@@ -430,58 +434,58 @@ const MoreMenuScreen: React.FC = () => {
 
         {/* User Information Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Information</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Account Information</Text>
           
-          <View style={styles.infoCard}>
+          <View style={[styles.infoCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <View style={styles.infoRow}>
               <View style={styles.infoLeft}>
-                <Feather name="mail" size={20} color={Colors.coolGrey} />
-                <Text style={styles.infoLabel}>Email</Text>
+                <Feather name="mail" size={20} color={theme.colors.textSecondary} />
+                <Text style={[styles.infoLabel, { color: theme.colors.textSecondary }]}>Email</Text>
               </View>
-              <Text style={styles.infoValue}>{userData.email}</Text>
+              <Text style={[styles.infoValue, { color: theme.colors.text }]}>{userData.email}</Text>
             </View>
           </View>
 
-          <View style={styles.infoCard}>
+          <View style={[styles.infoCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <View style={styles.infoRow}>
               <View style={styles.infoLeft}>
-                <Feather name="user" size={20} color={Colors.coolGrey} />
-                <Text style={styles.infoLabel}>Full Name</Text>
+                <Feather name="user" size={20} color={theme.colors.textSecondary} />
+                <Text style={[styles.infoLabel, { color: theme.colors.textSecondary }]}>Full Name</Text>
               </View>
-              <Text style={styles.infoValue}>{userData.fullName}</Text>
+              <Text style={[styles.infoValue, { color: theme.colors.text }]}>{userData.fullName}</Text>
             </View>
           </View>
 
           <TouchableOpacity
-            style={styles.infoCard}
+            style={[styles.infoCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
             onPress={handleEditRole}
             activeOpacity={0.7}
           >
             <View style={styles.infoRow}>
               <View style={styles.infoLeft}>
-                <Feather name="briefcase" size={20} color={Colors.coolGrey} />
-                <Text style={styles.infoLabel}>Role</Text>
+                <Feather name="briefcase" size={20} color={theme.colors.textSecondary} />
+                <Text style={[styles.infoLabel, { color: theme.colors.textSecondary }]}>Role</Text>
               </View>
               <View style={styles.infoRight}>
-                <Text style={styles.infoValue}>{getRoleLabel(userData.role)}</Text>
-                <Feather name="edit-2" size={16} color={Colors.coolGrey} />
+                <Text style={[styles.infoValue, { color: theme.colors.text }]}>{getRoleLabel(userData.role)}</Text>
+                <Feather name="edit-2" size={16} color={theme.colors.textSecondary} />
               </View>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.infoCard}
+            style={[styles.infoCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
             onPress={handleEditLocation}
             activeOpacity={0.7}
           >
             <View style={styles.infoRow}>
               <View style={styles.infoLeft}>
-                <Feather name="map-pin" size={20} color={Colors.coolGrey} />
-                <Text style={styles.infoLabel}>Location</Text>
+                <Feather name="map-pin" size={20} color={theme.colors.textSecondary} />
+                <Text style={[styles.infoLabel, { color: theme.colors.textSecondary }]}>Location</Text>
               </View>
               <View style={styles.infoRight}>
-                <Text style={styles.infoValue}>{userData.location || 'Not set'}</Text>
-                <Feather name="edit-2" size={16} color={Colors.coolGrey} />
+                <Text style={[styles.infoValue, { color: theme.colors.text }]}>{userData.location || 'Not set'}</Text>
+                <Feather name="edit-2" size={16} color={theme.colors.textSecondary} />
               </View>
             </View>
           </TouchableOpacity>
@@ -489,46 +493,61 @@ const MoreMenuScreen: React.FC = () => {
 
         {/* Settings Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Settings</Text>
           
-          <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+          <TouchableOpacity 
+            style={[styles.settingItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]} 
+            activeOpacity={0.7}
+            onPress={() => setShowThemeModal(true)}
+          >
             <View style={styles.settingLeft}>
-              <Feather name="bell" size={20} color={Colors.darkSlate} />
-              <Text style={styles.settingText}>Notifications</Text>
+              <Feather name="palette" size={20} color={theme.colors.primary} />
+              <Text style={[styles.settingText, { color: theme.colors.text }]}>Appearance</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={Colors.coolGrey} />
+            <View style={styles.settingRight}>
+              <View style={[styles.themePreview, { backgroundColor: theme.colors.primary, borderColor: theme.colors.white }]} />
+              <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]} activeOpacity={0.7}>
             <View style={styles.settingLeft}>
-              <Feather name="lock" size={20} color={Colors.darkSlate} />
-              <Text style={styles.settingText}>Privacy & Security</Text>
+              <Feather name="bell" size={20} color={theme.colors.text} />
+              <Text style={[styles.settingText, { color: theme.colors.text }]}>Notifications</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={Colors.coolGrey} />
+            <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]} activeOpacity={0.7}>
             <View style={styles.settingLeft}>
-              <Feather name="help-circle" size={20} color={Colors.darkSlate} />
-              <Text style={styles.settingText}>Help & Support</Text>
+              <Feather name="lock" size={20} color={theme.colors.text} />
+              <Text style={[styles.settingText, { color: theme.colors.text }]}>Privacy & Security</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={Colors.coolGrey} />
+            <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]} activeOpacity={0.7}>
             <View style={styles.settingLeft}>
-              <Feather name="info" size={20} color={Colors.darkSlate} />
-              <Text style={styles.settingText}>About</Text>
+              <Feather name="help-circle" size={20} color={theme.colors.text} />
+              <Text style={[styles.settingText, { color: theme.colors.text }]}>Help & Support</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={Colors.coolGrey} />
+            <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]} activeOpacity={0.7}>
+            <View style={styles.settingLeft}>
+              <Feather name="info" size={20} color={theme.colors.text} />
+              <Text style={[styles.settingText, { color: theme.colors.text }]}>About</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {/* Logout Button */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7} onPress={handleLogout}>
-            <Feather name="log-out" size={20} color={Colors.errorRed} />
-            <Text style={styles.logoutText}>Logout</Text>
+          <TouchableOpacity style={[styles.logoutButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.error }]} activeOpacity={0.7} onPress={handleLogout}>
+            <Feather name="log-out" size={20} color={theme.colors.error} />
+            <Text style={[styles.logoutText, { color: theme.colors.error }]}>Logout</Text>
           </TouchableOpacity>
         </View>
 
@@ -543,43 +562,44 @@ const MoreMenuScreen: React.FC = () => {
         onRequestClose={() => setShowLocationModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Location</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.divider }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Edit Location</Text>
               <TouchableOpacity
                 onPress={() => setShowLocationModal(false)}
                 style={styles.modalCloseButton}
               >
-                <Feather name="x" size={24} color={Colors.darkSlate} />
+                <Feather name="x" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
             <View style={styles.modalBody}>
-              <Text style={styles.modalLabel}>Location</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Location</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: theme.colors.surface, color: theme.colors.text, borderColor: theme.colors.border }]}
                 placeholder="Enter your location (e.g., Lagos, Nigeria)"
+                placeholderTextColor={theme.colors.textTertiary}
                 value={editingLocation}
                 onChangeText={setEditingLocation}
                 autoCapitalize="words"
                 editable={!isGettingLocation}
               />
               <TouchableOpacity
-                style={[styles.useLocationButton, isGettingLocation && styles.useLocationButtonDisabled]}
+                style={[styles.useLocationButton, { backgroundColor: theme.colors.success }, isGettingLocation && styles.useLocationButtonDisabled]}
                 onPress={handleGetCurrentLocation}
                 disabled={isGettingLocation}
                 activeOpacity={0.8}
               >
                 {isGettingLocation ? (
-                  <ActivityIndicator size="small" color={Colors.white} />
+                  <ActivityIndicator size="small" color={theme.colors.white} />
                 ) : (
-                  <Feather name="map-pin" size={18} color={Colors.white} />
+                  <Feather name="map-pin" size={18} color={theme.colors.white} />
                 )}
                 <Text style={styles.useLocationButtonText}>
                   {isGettingLocation ? 'Detecting Location...' : 'Use Current Location'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalSaveButton}
+                style={[styles.modalSaveButton, { backgroundColor: theme.colors.primary }]}
                 onPress={handleSaveLocation}
                 activeOpacity={0.8}
               >
@@ -598,24 +618,25 @@ const MoreMenuScreen: React.FC = () => {
         onRequestClose={() => setShowRoleModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Role</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.divider }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Edit Role</Text>
               <TouchableOpacity
                 onPress={() => setShowRoleModal(false)}
                 style={styles.modalCloseButton}
               >
-                <Feather name="x" size={24} color={Colors.darkSlate} />
+                <Feather name="x" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
             <View style={styles.modalBody}>
-              <Text style={styles.modalLabel}>Select Your Role</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Select Your Role</Text>
               {(['STUDENT', 'INTERN', 'WORKER'] as const).map((role) => (
                 <TouchableOpacity
                   key={role}
                   style={[
                     styles.roleOption,
-                    selectedRole === role && styles.roleOptionSelected,
+                    { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+                    selectedRole === role && { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },
                   ]}
                   onPress={() => setSelectedRole(role)}
                   activeOpacity={0.7}
@@ -636,24 +657,114 @@ const MoreMenuScreen: React.FC = () => {
                     <Text
                       style={[
                         styles.roleOptionText,
-                        selectedRole === role && styles.roleOptionTextSelected,
+                        { color: theme.colors.text },
+                        selectedRole === role && { color: theme.colors.primary },
                       ]}
                     >
                       {getRoleLabel(role)}
                     </Text>
                   </View>
                   {selectedRole === role && (
-                    <Feather name="check-circle" size={20} color={Colors.roseRed} />
+                    <Feather name="check-circle" size={20} color={theme.colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
               <TouchableOpacity
-                style={styles.modalSaveButton}
+                style={[styles.modalSaveButton, { backgroundColor: theme.colors.primary }]}
                 onPress={handleSaveRole}
                 activeOpacity={0.8}
               >
                 <Text style={styles.modalSaveButtonText}>Save</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Theme Settings Modal */}
+      <Modal
+        visible={showThemeModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowThemeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.divider }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Appearance</Text>
+              <TouchableOpacity
+                onPress={() => setShowThemeModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Feather name="x" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              {/* Dark Mode Toggle */}
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Theme</Text>
+              <View style={[styles.themeToggleContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    !isDark && styles.themeOptionActive,
+                    !isDark && { backgroundColor: theme.colors.primary },
+                  ]}
+                  onPress={() => setThemeMode('light')}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="sun" size={20} color={!isDark ? theme.colors.white : theme.colors.textSecondary} />
+                  <Text style={[
+                    styles.themeOptionText,
+                    { color: !isDark ? theme.colors.white : theme.colors.textSecondary }
+                  ]}>
+                    Light
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    isDark && styles.themeOptionActive,
+                    isDark && { backgroundColor: theme.colors.primary },
+                  ]}
+                  onPress={() => setThemeMode('dark')}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="moon" size={20} color={isDark ? theme.colors.white : theme.colors.textSecondary} />
+                  <Text style={[
+                    styles.themeOptionText,
+                    { color: isDark ? theme.colors.white : theme.colors.textSecondary }
+                  ]}>
+                    Dark
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Primary Color Picker */}
+              <Text style={[styles.modalLabel, { color: theme.colors.text, marginTop: 24 }]}>Primary Color</Text>
+              <View style={styles.colorPickerContainer}>
+                {(Object.keys(PRIMARY_COLORS) as PrimaryColorOption[]).map((colorKey) => {
+                  const color = PRIMARY_COLORS[colorKey];
+                  const isSelected = theme.primaryColor === colorKey;
+                  return (
+                    <TouchableOpacity
+                      key={colorKey}
+                      style={[
+                        styles.colorOption,
+                        isSelected && { borderColor: theme.colors.primary, borderWidth: 3 },
+                      ]}
+                      onPress={() => setPrimaryColor(colorKey)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.colorCircle, { backgroundColor: color.value }]} />
+                      {isSelected && (
+                        <View style={styles.colorCheck}>
+                          <Feather name="check" size={16} color={theme.colors.white} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           </View>
         </View>
@@ -679,12 +790,10 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   errorText: {
     fontSize: 16,
-    color: Colors.errorRed,
     fontFamily: Fonts.regular,
   },
   header: {
@@ -704,10 +813,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginHorizontal: 20,
     marginBottom: 24,
-    backgroundColor: Colors.white,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   avatarTouchable: {
     position: 'relative',
@@ -738,16 +845,13 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.roseRed,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.white,
   },
   profileName: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 12,
   },
@@ -768,17 +872,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 16,
   },
   infoCard: {
-    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   infoRow: {
     flexDirection: 'row',
@@ -793,13 +894,11 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.darkSlate,
     fontFamily: Fonts.semiBold,
     flex: 1,
     textAlign: 'right',
@@ -814,12 +913,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   settingLeft: {
     flexDirection: 'row',
@@ -828,24 +925,20 @@ const styles = StyleSheet.create({
   },
   settingText: {
     fontSize: 16,
-    color: Colors.darkSlate,
     fontFamily: Fonts.regular,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.errorRed,
     gap: 12,
   },
   logoutText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.errorRed,
     fontFamily: Fonts.semiBold,
   },
   bottomSpacer: {
@@ -857,7 +950,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 32,
@@ -871,12 +963,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.fogGrey,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   modalCloseButton: {
@@ -889,27 +979,22 @@ const styles = StyleSheet.create({
   modalLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.darkSlate,
     fontFamily: Fonts.semiBold,
     marginBottom: 12,
   },
   modalInput: {
-    backgroundColor: Colors.fogGrey + '30',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: Colors.darkSlate,
     fontFamily: Fonts.regular,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   useLocationButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.successGreen,
     borderRadius: 12,
     paddingVertical: 14,
     marginBottom: 16,
@@ -928,16 +1013,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.fogGrey + '30',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   roleOptionSelected: {
-    backgroundColor: Colors.roseRed + '10',
-    borderColor: Colors.roseRed,
+    // Handled inline
   },
   roleOptionContent: {
     flexDirection: 'row',
@@ -955,14 +1037,12 @@ const styles = StyleSheet.create({
   roleOptionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.darkSlate,
     fontFamily: Fonts.semiBold,
   },
   roleOptionTextSelected: {
-    color: Colors.roseRed,
+    // Handled inline
   },
   modalSaveButton: {
-    backgroundColor: Colors.roseRed,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -973,6 +1053,72 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.white,
     fontFamily: Fonts.bold,
+  },
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  themePreview: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.white,
+  },
+  themeToggleContainer: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  themeOptionActive: {
+    // Active state handled by backgroundColor in inline style
+  },
+  themeOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
+  },
+  colorPickerContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    marginTop: 8,
+  },
+  colorOption: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.fogGrey,
+    position: 'relative',
+  },
+  colorCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  colorCheck: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

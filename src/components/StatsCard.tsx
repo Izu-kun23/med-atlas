@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Fonts } from '../constants/fonts';
+import { useTheme } from '../hooks/useTheme';
 import SvgIcon from './SvgIcon';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -29,23 +30,44 @@ const StatsCard: React.FC<StatsCardProps> = ({
   bgColor,
   onPress,
 }) => {
+  const { theme } = useTheme();
+  
+  // Create a more subtle border color with reduced opacity
+  const getSubtleBorderColor = (color: string) => {
+    // Convert hex to rgba with 25% opacity
+    if (color.startsWith('#')) {
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, 0.25)`;
+    }
+    return color;
+  };
+  
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: bgColor }]}
+      style={[
+        styles.card, 
+        { 
+          backgroundColor: theme.colors.card,
+          borderColor: getSubtleBorderColor(bgColor) 
+        }
+      ]}
       activeOpacity={0.85}
       onPress={onPress}
     >
       <View style={styles.cardInner}>
         <View>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.value}>{value}</Text>
-          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          <Text style={[styles.title, { color: bgColor }]}>{title}</Text>
+          <Text style={[styles.value, { color: bgColor }]}>{value}</Text>
+          {subtitle && <Text style={[styles.subtitle, { color: bgColor }]}>{subtitle}</Text>}
         </View>
         <View style={styles.iconWrapper}>
           {iconType === 'svg' && svgIconName ? (
-            <SvgIcon name={svgIconName} size={28} color={color} />
+            <SvgIcon name={svgIconName} size={28} color={bgColor} />
           ) : (
-            <Feather name={icon as any} size={28} color={color} />
+            <Feather name={icon as any} size={28} color={bgColor} />
           )}
         </View>
       </View>
@@ -57,15 +79,11 @@ const styles = StyleSheet.create({
   card: {
     width: SCREEN_WIDTH * 0.55,
     height: 160,
-    borderRadius: 18,
+    borderRadius: 28,
     padding: 20,
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
     marginRight: 16,
+    borderWidth: 1,
   },
   cardInner: {
     flexDirection: 'column',
@@ -74,23 +92,22 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.85)',
     fontFamily: Fonts.medium,
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    opacity: 0.85,
   },
   value: {
     fontSize: 32,
     fontWeight: '900',
-    color: '#FFFFFF',
     fontFamily: Fonts.bold,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.75)',
     fontFamily: Fonts.regular,
+    opacity: 0.75,
   },
   iconWrapper: {
     alignSelf: 'flex-end',
