@@ -559,16 +559,18 @@ const CalendarScreen: React.FC = () => {
     );
   };
 
+  const styles = createStyles(theme);
+
   return (
     <SafeAreaView 
-      style={styles.container} 
+      style={[styles.container, { backgroundColor: theme.colors.background }]} 
       edges={Platform.OS === 'android' ? ['top', 'bottom'] : ['top']}
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Calendar</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Calendar</Text>
         <TouchableOpacity
-          style={styles.addButton}
+          style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
           activeOpacity={0.7}
           onPress={() => setShowAddEventModal(true)}
         >
@@ -601,27 +603,27 @@ const CalendarScreen: React.FC = () => {
             style={styles.monthNavButton}
             activeOpacity={0.7}
           >
-            <Feather name="chevron-left" size={28} color="#111827" />
+            <Feather name="chevron-left" size={28} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={styles.monthText}>
+          <Text style={[styles.monthText, { color: theme.colors.text }]}>
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </Text>
           <TouchableOpacity
             onPress={() => navigateMonth('next')}
-            style={styles.monthNavButton}
+            style={[styles.monthNavButton, { backgroundColor: theme.colors.card }]}
             activeOpacity={0.7}
           >
-            <Feather name="chevron-right" size={28} color="#111827" />
+            <Feather name="chevron-right" size={28} color={theme.colors.text} />
           </TouchableOpacity>
         </View>
 
         {/* Calendar Grid */}
-        <View style={styles.calendarContainer}>
+        <View style={[styles.calendarContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           {/* Day Headers */}
           <View style={styles.dayHeaders}>
             {dayNames.map((day) => (
               <View key={day} style={styles.dayHeader}>
-                <Text style={styles.dayHeaderText}>{day}</Text>
+                <Text style={[styles.dayHeaderText, { color: theme.colors.textSecondary }]}>{day}</Text>
               </View>
             ))}
           </View>
@@ -638,8 +640,8 @@ const CalendarScreen: React.FC = () => {
                   key={index}
                   style={[
                     styles.dayCell,
-                    isCurrentDay && styles.todayCell,
-                    isSelectedDay && styles.selectedCell,
+                    isCurrentDay && [styles.todayCell, { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary }],
+                    isSelectedDay && [styles.selectedCell, { backgroundColor: theme.colors.primary }],
                     !date && styles.emptyCell,
                   ]}
                   onPress={() => handleDayPress(date)}
@@ -651,7 +653,8 @@ const CalendarScreen: React.FC = () => {
                       <Text
                         style={[
                           styles.dayText,
-                          isCurrentDay && styles.todayText,
+                          { color: theme.colors.text },
+                          isCurrentDay && [styles.todayText, { color: theme.colors.primary }],
                           isSelectedDay && styles.selectedText,
                         ]}
                       >
@@ -666,7 +669,7 @@ const CalendarScreen: React.FC = () => {
                             />
                           ))}
                           {dateEvents.length > 3 && (
-                            <Text style={styles.moreEventsText}>+{dateEvents.length - 3}</Text>
+                            <Text style={[styles.moreEventsText, { color: theme.colors.textSecondary }]}>+{dateEvents.length - 3}</Text>
                           )}
                         </View>
                       )}
@@ -682,11 +685,11 @@ const CalendarScreen: React.FC = () => {
         {isLoadingEvents ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>Loading events...</Text>
+            <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Loading events...</Text>
           </View>
         ) : selectedDateEvents.length > 0 ? (
           <View style={styles.eventsSection}>
-            <Text style={styles.eventsSectionTitle}>
+            <Text style={[styles.eventsSectionTitle, { color: theme.colors.text }]}>
               {new Date(selectedDate).toLocaleDateString('en-US', {
                 weekday: 'long',
                 month: 'long',
@@ -694,18 +697,18 @@ const CalendarScreen: React.FC = () => {
               })}
             </Text>
             {selectedDateEvents.map((event) => (
-              <View key={event.id} style={styles.eventCard}>
+              <View key={event.id} style={[styles.eventCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                 <View style={[styles.eventColorBar, { backgroundColor: event.color }]} />
                 <View style={styles.eventContent}>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  {event.time && <Text style={styles.eventTime}>{event.time}</Text>}
+                  <Text style={[styles.eventTitle, { color: theme.colors.text }]}>{event.title}</Text>
+                  {event.time && <Text style={[styles.eventTime, { color: theme.colors.textSecondary }]}>{event.time}</Text>}
                   {event.description && (
-                    <Text style={styles.eventDescription}>{event.description}</Text>
+                    <Text style={[styles.eventDescription, { color: theme.colors.textSecondary }]}>{event.description}</Text>
                   )}
                 </View>
                 <View style={styles.eventActions}>
                   <TouchableOpacity
-                    style={styles.eventActionButton}
+                    style={[styles.eventActionButton, { backgroundColor: theme.colors.card }]}
                     onPress={() => addEventToGoogleCalendar(event)}
                     activeOpacity={0.7}
                     disabled={isSyncing}
@@ -737,8 +740,8 @@ const CalendarScreen: React.FC = () => {
         ) : (
           <View style={styles.emptyDateState}>
             <SvgIcon name="calendar-lines" size={64} color="#D1D5DB" />
-            <Text style={styles.emptyDateTitle}>No events scheduled</Text>
-            <Text style={styles.emptyDateText}>
+            <Text style={[styles.emptyDateTitle, { color: theme.colors.text }]}>No events scheduled</Text>
+            <Text style={[styles.emptyDateText, { color: theme.colors.textSecondary }]}>
               Tap the + button to add an event for{' '}
               {new Date(selectedDate).toLocaleDateString('en-US', {
                 month: 'long',
@@ -750,8 +753,8 @@ const CalendarScreen: React.FC = () => {
 
         {/* Calendar Sync Options */}
         <View style={styles.syncSection}>
-          <Text style={styles.syncSectionTitle}>Sync Calendar</Text>
-          <Text style={styles.syncSectionSubtitle}>
+          <Text style={[styles.syncSectionTitle, { color: theme.colors.text }]}>Sync Calendar</Text>
+          <Text style={[styles.syncSectionSubtitle, { color: theme.colors.textSecondary }]}>
             Export your events to your preferred calendar app
           </Text>
           <TouchableOpacity
@@ -759,13 +762,14 @@ const CalendarScreen: React.FC = () => {
               styles.syncButton,
               styles.googleButton,
               isGoogleConnected && styles.connectedButton,
+              { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
             ]}
             onPress={handleGoogleCalendar}
             activeOpacity={0.8}
             disabled={isSyncing}
           >
             <View style={styles.syncButtonContent}>
-              <View style={styles.syncIconContainer}>
+              <View style={[styles.syncIconContainer, { backgroundColor: theme.colors.surface }]}>
                 {isSyncing ? (
                   <ActivityIndicator size="small" color="#4285F4" />
                 ) : (
@@ -773,10 +777,10 @@ const CalendarScreen: React.FC = () => {
                 )}
               </View>
               <View style={styles.syncButtonText}>
-                <Text style={styles.syncButtonTitle}>
+                <Text style={[styles.syncButtonTitle, { color: theme.colors.text }]}>
                   {isGoogleConnected ? 'Google Calendar Connected' : 'Add to Google Calendar'}
                 </Text>
-                <Text style={styles.syncButtonSubtitle}>
+                <Text style={[styles.syncButtonSubtitle, { color: theme.colors.textSecondary }]}>
                   {isGoogleConnected
                     ? 'Tap to sync events or disconnect'
                     : 'Sync with your Google account'}
@@ -792,7 +796,11 @@ const CalendarScreen: React.FC = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.syncButton, styles.outlookButton]}
+            style={[
+              styles.syncButton,
+              styles.outlookButton,
+              { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+            ]}
             onPress={handleOutlook}
             activeOpacity={0.8}
           >
@@ -801,11 +809,11 @@ const CalendarScreen: React.FC = () => {
                 <Feather name="mail" size={24} color="#FFFFFF" />
               </View>
               <View style={styles.syncButtonText}>
-                <Text style={styles.syncButtonTitle}>Add to Outlook</Text>
-                <Text style={styles.syncButtonSubtitle}>Sync with your Microsoft account</Text>
+                <Text style={[styles.syncButtonTitle, { color: theme.colors.text }]}>Add to Outlook</Text>
+                <Text style={[styles.syncButtonSubtitle, { color: theme.colors.textSecondary }]}>Sync with your Microsoft account</Text>
               </View>
             </View>
-            <Feather name="chevron-right" size={24} color="#9CA3AF" />
+            <Feather name="chevron-right" size={24} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -818,26 +826,26 @@ const CalendarScreen: React.FC = () => {
         onRequestClose={() => setShowAddEventModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Event</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.divider }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Add Event</Text>
               <TouchableOpacity
                 onPress={() => setShowAddEventModal(false)}
-                style={styles.modalCloseButton}
+                style={[styles.modalCloseButton, { backgroundColor: theme.colors.surface }]}
                 activeOpacity={0.7}
               >
-                <Feather name="x" size={26} color="#111827" />
+                <Feather name="x" size={26} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
               {/* Event Title */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Event Title</Text>
+                <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Event Title</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.colors.card, color: theme.colors.text, borderColor: theme.colors.border }]}
                   placeholder="Enter event title"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.colors.textTertiary}
                   value={newEvent.title}
                   onChangeText={(text) => setNewEvent({ ...newEvent, title: text })}
                 />
@@ -845,11 +853,11 @@ const CalendarScreen: React.FC = () => {
 
               {/* Event Description */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Description (Optional)</Text>
+                <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Description (Optional)</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, { backgroundColor: theme.colors.card, color: theme.colors.text, borderColor: theme.colors.border }]}
                   placeholder="Add a description"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.colors.textTertiary}
                   value={newEvent.description}
                   onChangeText={(text) => setNewEvent({ ...newEvent, description: text })}
                   multiline
@@ -859,7 +867,7 @@ const CalendarScreen: React.FC = () => {
 
               {/* Event Type */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Event Type</Text>
+                <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Event Type</Text>
                 <View style={styles.typeButtons}>
                   {(Object.keys(eventTypeLabels) as CalendarEvent['type'][]).map((type) => (
                     <TouchableOpacity
@@ -877,7 +885,7 @@ const CalendarScreen: React.FC = () => {
                       <Text
                         style={[
                           styles.typeButtonText,
-                          newEvent.type === type && styles.typeButtonTextActive,
+                          { color: newEvent.type === type ? theme.colors.white : theme.colors.textSecondary },
                         ]}
                       >
                         {eventTypeLabels[type]}
@@ -895,8 +903,8 @@ const CalendarScreen: React.FC = () => {
                   onPress={() => setShowDatePicker(true)}
                   activeOpacity={0.7}
                 >
-                  <Feather name="calendar" size={22} color="#6366F1" />
-                  <Text style={styles.dateTimeText}>
+                  <Feather name="calendar" size={22} color={theme.colors.primary} />
+                  <Text style={[styles.dateTimeText, { color: theme.colors.text }]}>
                     {newEvent.date.toLocaleDateString('en-US', {
                       weekday: 'long',
                       month: 'long',
@@ -922,14 +930,14 @@ const CalendarScreen: React.FC = () => {
 
               {/* Time Picker */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Time</Text>
+                <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Time</Text>
                 <TouchableOpacity
-                  style={styles.dateTimeButton}
+                  style={[styles.dateTimeButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
                   onPress={() => setShowTimePicker(true)}
                   activeOpacity={0.7}
                 >
-                  <Feather name="clock" size={22} color="#6366F1" />
-                  <Text style={styles.dateTimeText}>
+                  <Feather name="clock" size={22} color={theme.colors.primary} />
+                  <Text style={[styles.dateTimeText, { color: theme.colors.text }]}>
                     {newEvent.time.toLocaleTimeString('en-US', {
                       hour: 'numeric',
                       minute: '2-digit',
@@ -956,6 +964,7 @@ const CalendarScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.addEventButton,
+                  { backgroundColor: theme.colors.primary },
                   !newEvent.title && styles.addEventButtonDisabled,
                 ]}
                 onPress={handleAddEvent}
@@ -975,7 +984,6 @@ const CalendarScreen: React.FC = () => {
 const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   header: {
     flexDirection: 'row',
@@ -988,14 +996,12 @@ const createStyles = (theme: any) => StyleSheet.create({
   headerTitle: {
     fontSize: 36,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   addButton: {
     width: 56,
     height: 56,
     borderRadius: 32,
-    backgroundColor: Colors.roseRed,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1020,26 +1026,22 @@ const createStyles = (theme: any) => StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 28,
-    backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
   monthText: {
     fontSize: Platform.OS === 'android' ? 22 : 24,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     textAlign: 'center',
     flex: 1,
   },
   calendarContainer: {
-    backgroundColor: Colors.white,
     borderRadius: 28,
     marginHorizontal: Platform.OS === 'android' ? getResponsivePadding(20) : 34,
     marginBottom: Platform.OS === 'android' ? 20 : 22,
     padding: Platform.OS === 'android' ? 16 : 20,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   dayHeaders: {
     flexDirection: 'row',
@@ -1054,7 +1056,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   dayHeaderText: {
     fontSize: Platform.OS === 'android' ? 13 : 15,
     fontWeight: '700',
-    color: Colors.coolGrey,
     fontFamily: Fonts.bold,
     textTransform: Platform.OS === 'android' ? 'uppercase' : 'none',
     letterSpacing: Platform.OS === 'android' ? 0.5 : 0,
@@ -1079,26 +1080,22 @@ const createStyles = (theme: any) => StyleSheet.create({
     opacity: 0,
   },
   todayCell: {
-    backgroundColor: Colors.roseLight,
     borderWidth: Platform.OS === 'android' ? 2 : 0,
-    borderColor: Colors.roseRed,
   },
   selectedCell: {
-    backgroundColor: Colors.roseRed,
+    // Handled inline
   },
   dayText: {
     fontSize: Platform.OS === 'android' ? 16 : 17,
     fontWeight: '600',
-    color: Colors.darkSlate,
     fontFamily: Fonts.semiBold,
   },
   todayText: {
-    color: Colors.roseRed,
     fontWeight: '800',
     fontFamily: Fonts.bold,
   },
   selectedText: {
-    color: Colors.white,
+    color: theme.colors.white,
     fontWeight: '800',
     fontFamily: Fonts.bold,
   },
@@ -1116,7 +1113,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   moreEventsText: {
     fontSize: 9,
-    color: Colors.coolGrey,
     fontFamily: Fonts.semiBold,
     marginLeft: 2,
   },
@@ -1127,18 +1123,15 @@ const createStyles = (theme: any) => StyleSheet.create({
   eventsSectionTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 16,
   },
   eventCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.white,
     borderRadius: 28,
     marginBottom: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   eventColorBar: {
     width: 6,
@@ -1150,19 +1143,16 @@ const createStyles = (theme: any) => StyleSheet.create({
   eventTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 6,
   },
   eventTime: {
     fontSize: 16,
-    color: Colors.coolGrey,
     fontFamily: Fonts.medium,
     marginBottom: 6,
   },
   eventDescription: {
     fontSize: 15,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     lineHeight: 22,
   },
@@ -1176,7 +1166,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 28,
-    backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1194,14 +1183,12 @@ const createStyles = (theme: any) => StyleSheet.create({
   emptyDateTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginTop: 20,
     marginBottom: 12,
   },
   emptyDateText: {
     fontSize: 16,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     textAlign: 'center',
     lineHeight: 24,
@@ -1212,13 +1199,11 @@ const createStyles = (theme: any) => StyleSheet.create({
   syncSectionTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 8,
   },
   syncSectionSubtitle: {
     fontSize: 16,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     marginBottom: 20,
     lineHeight: 24,
@@ -1227,12 +1212,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.white,
     borderRadius: 28,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   googleButton: {
     borderLeftWidth: 5,
@@ -1254,7 +1237,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
-    backgroundColor: Colors.white,
   },
   googleLogo: {
     width: 28,
@@ -1266,13 +1248,11 @@ const createStyles = (theme: any) => StyleSheet.create({
   syncButtonTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 4,
   },
   syncButtonSubtitle: {
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   // Modal Styles
@@ -1282,7 +1262,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.white,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     maxHeight: '90%',
@@ -1296,19 +1275,16 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.fogGrey,
   },
   modalTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   modalCloseButton: {
     width: 44,
     height: 44,
     borderRadius: 28,
-    backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1320,7 +1296,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   modalScroll: {
@@ -1332,19 +1307,15 @@ const createStyles = (theme: any) => StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 12,
   },
   input: {
-    backgroundColor: Colors.white,
     borderRadius: 24,
     padding: 18,
     fontSize: 17,
-    color: Colors.darkSlate,
     fontFamily: Fonts.regular,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   textArea: {
     height: 120,
@@ -1365,30 +1336,25 @@ const createStyles = (theme: any) => StyleSheet.create({
   typeButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.coolGrey,
     fontFamily: Fonts.bold,
   },
   typeButtonTextActive: {
-    color: Colors.white,
+    color: theme.colors.white,
   },
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
     borderRadius: 24,
     padding: 18,
     gap: 14,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   dateTimeText: {
     fontSize: 17,
-    color: Colors.darkSlate,
     fontFamily: Fonts.medium,
     flex: 1,
   },
   addEventButton: {
-    backgroundColor: Colors.roseRed,
     borderRadius: 28,
     padding: 20,
     alignItems: 'center',
@@ -1400,7 +1366,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   addEventButtonText: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.white,
+    color: theme.colors.white,
     fontFamily: Fonts.bold,
   },
   connectedButton: {
