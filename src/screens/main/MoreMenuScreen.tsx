@@ -810,10 +810,10 @@ const styles = StyleSheet.create({
   profileCard: {
     alignItems: 'center',
     paddingVertical: 32,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     marginHorizontal: 20,
-    marginBottom: 24,
-    borderRadius: 20,
+    marginBottom: 20,
+    borderRadius: 24,
     borderWidth: 1,
   },
   avatarTouchable: {
@@ -876,8 +876,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   infoCard: {
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 18,
+    padding: 18,
     marginBottom: 12,
     borderWidth: 1,
   },

@@ -1037,10 +1037,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     flex: 1,
   },
   calendarContainer: {
-    borderRadius: 28,
+    borderRadius: 24,
     marginHorizontal: Platform.OS === 'android' ? getResponsivePadding(20) : 34,
     marginBottom: Platform.OS === 'android' ? 20 : 22,
-    padding: Platform.OS === 'android' ? 16 : 20,
+    padding: Platform.OS === 'android' ? 18 : 24,
     borderWidth: 1,
   },
   dayHeaders: {
@@ -1128,7 +1128,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   eventCard: {
     flexDirection: 'row',
-    borderRadius: 28,
+    borderRadius: 20,
     marginBottom: 16,
     overflow: 'hidden',
     borderWidth: 1,
@@ -1138,7 +1138,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   eventContent: {
     flex: 1,
-    padding: 20,
+    padding: 18,
   },
   eventTitle: {
     fontSize: 18,
@@ -1212,8 +1212,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 28,
-    padding: 20,
+    borderRadius: 20,
+    padding: 18,
     marginBottom: 16,
     borderWidth: 1,
   },

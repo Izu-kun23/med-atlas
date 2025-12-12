@@ -1,6 +1,7 @@
 export type ThemeMode = 'light' | 'dark';
 
 export type PrimaryColorOption = 
+  | 'black' 
   | 'roseRed' 
   | 'blue' 
   | 'green' 
@@ -16,6 +17,12 @@ export interface PrimaryColor {
 }
 
 export const PRIMARY_COLORS: Record<PrimaryColorOption, PrimaryColor> = {
+  black: {
+    name: 'black',
+    value: '#000000',
+    dark: '#000000',
+    light: '#F5F5F5',
+  },
   roseRed: {
     name: 'roseRed',
     value: '#E75466',

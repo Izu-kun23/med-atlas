@@ -51,6 +51,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 4,
     borderWidth: 1,
+    backgroundColor: '#F5F5F5',
   },
   tab: {
     flex: 1,

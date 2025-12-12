@@ -71,8 +71,8 @@ const PatientCard: React.FC<PatientCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.white,
-    borderRadius: 28,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     borderWidth: 1,
     borderColor: Colors.fogGrey,
   },

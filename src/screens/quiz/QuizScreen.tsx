@@ -16,6 +16,7 @@ import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navig
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Fonts } from '../../constants/fonts';
 import { Colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
 import { QuizQuestion } from '../../utils/quizGenerator';
 import AnimatedScore from '../../components/AnimatedScore';
 import { QuizStackParamList } from '../../navigation/QuizStackNavigator';
@@ -28,9 +29,15 @@ type QuizScreenRouteProp = RouteProp<QuizStackParamList, 'QuizScreen'>;
 type QuizScreenNavigationProp = StackNavigationProp<QuizStackParamList, 'QuizScreen'>;
 
 const QuizScreen: React.FC = () => {
+  const { theme } = useTheme();
   const navigation = useNavigation<QuizScreenNavigationProp>();
   const route = useRoute<QuizScreenRouteProp>();
-  const { subjectId, subjectName, questions } = route.params;
+  const { subjectId, subjectName, subjectColor, questions } = route.params;
+  
+  // Use subject color if provided, otherwise fall back to theme primary
+  const primaryColor = subjectColor || theme.colors.primary;
+  // Create a light version of the subject color (with 15% opacity for backgrounds)
+  const primaryColorLight = primaryColor + '26'; // ~15% opacity in hex
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: string]: number }>({});
@@ -233,8 +240,8 @@ const QuizScreen: React.FC = () => {
     if (isSubmitting) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.roseRed} />
-          <Text style={styles.loadingText}>Submitting quiz...</Text>
+          <ActivityIndicator size="large" color={primaryColor} />
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Submitting quiz...</Text>
         </View>
       );
     }
@@ -250,35 +257,35 @@ const QuizScreen: React.FC = () => {
           <View style={styles.progressSection}>
             <View style={styles.progressHeader}>
               <View style={styles.progressInfo}>
-                <Text style={styles.progressText}>
+                <Text style={[styles.progressText, { color: theme.colors.text }]}>
                   Question {currentQuestionIndex + 1} of {questions.length}
                 </Text>
-                <Text style={styles.answeredText}>
+                <Text style={[styles.answeredText, { color: theme.colors.textSecondary }]}>
                   {answeredCount} answered
                 </Text>
               </View>
               <View style={styles.timerContainer}>
-                <Feather name="clock" size={16} color={Colors.coolGrey} />
-                <Text style={styles.timerText}>{formatTime(timeElapsed)}</Text>
+                <Feather name="clock" size={16} color={theme.colors.textSecondary} />
+                <Text style={[styles.timerText, { color: theme.colors.text }]}>{formatTime(timeElapsed)}</Text>
               </View>
             </View>
-            <View style={styles.progressBar}>
+            <View style={[styles.progressBar, { backgroundColor: theme.colors.surface }]}>
               <Animated.View
                 style={[
                   styles.progressFill,
-                  { width: `${progress}%` },
+                  { width: `${progress}%`, backgroundColor: primaryColor },
                 ]}
               />
             </View>
           </View>
 
           {/* Question Card */}
-          <View style={styles.questionCard}>
-            <Text style={styles.questionText}>{currentQuestion.question}</Text>
+          <View style={[styles.questionCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                <Text style={[styles.questionText, { color: theme.colors.text }]}>{currentQuestion.question}</Text>
             {currentQuestion.sourceNote && (
-              <View style={styles.sourceNoteBadge}>
-                <Feather name="file-text" size={12} color={Colors.roseRed} />
-                <Text style={styles.sourceNoteText}>From: {currentQuestion.sourceNote}</Text>
+              <View style={[styles.sourceNoteBadge, { borderTopColor: theme.colors.divider }]}>
+                <Feather name="file-text" size={12} color={primaryColor} />
+                <Text style={[styles.sourceNoteText, { color: theme.colors.textSecondary }]}>From: {currentQuestion.sourceNote}</Text>
               </View>
             )}
           </View>
@@ -293,7 +300,8 @@ const QuizScreen: React.FC = () => {
                   key={index}
                   style={[
                     styles.optionCard,
-                    isSelected && styles.optionCardSelected,
+                    { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+                    isSelected && [styles.optionCardSelected, { borderColor: primaryColor, backgroundColor: primaryColorLight }],
                   ]}
                   onPress={() => handleAnswerSelect(index)}
                   activeOpacity={0.7}
@@ -302,13 +310,15 @@ const QuizScreen: React.FC = () => {
                     <View
                       style={[
                         styles.optionIndicator,
-                        isSelected && styles.optionIndicatorSelected,
+                        { backgroundColor: theme.colors.surface },
+                        isSelected && [styles.optionIndicatorSelected, { backgroundColor: primaryColor }],
                       ]}
                     >
                       <Text
                         style={[
                           styles.optionLetter,
-                          isSelected && styles.optionLetterSelected,
+                          { color: theme.colors.text },
+                          isSelected && [styles.optionLetterSelected, { color: theme.colors.white }],
                         ]}
                       >
                         {String.fromCharCode(65 + index)}
@@ -317,14 +327,15 @@ const QuizScreen: React.FC = () => {
                     <Text
                       style={[
                         styles.optionText,
-                        isSelected && styles.optionTextSelected,
+                        { color: theme.colors.text },
+                        isSelected && [styles.optionTextSelected, { color: theme.colors.text }],
                       ]}
                     >
                       {option}
                     </Text>
                   </View>
                   {isSelected && (
-                    <Feather name="check-circle" size={20} color={Colors.roseRed} />
+                    <Feather name="check-circle" size={20} color={primaryColor} />
                   )}
                 </TouchableOpacity>
               );
@@ -342,8 +353,9 @@ const QuizScreen: React.FC = () => {
                   key={index}
                   style={[
                     styles.dot,
-                    isCurrent && styles.dotCurrent,
-                    isAnswered && styles.dotAnswered,
+                    { backgroundColor: theme.colors.border },
+                    isCurrent && [styles.dotCurrent, { backgroundColor: primaryColor }],
+                    isAnswered && [styles.dotAnswered, { backgroundColor: theme.colors.success }],
                   ]}
                   onPress={() => setCurrentQuestionIndex(index)}
                   activeOpacity={0.7}
@@ -358,6 +370,7 @@ const QuizScreen: React.FC = () => {
               style={[
                 styles.navButton,
                 styles.navButtonSecondary,
+                { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
                 currentQuestionIndex === 0 && styles.navButtonDisabled,
               ]}
               onPress={handlePrevious}
@@ -367,13 +380,13 @@ const QuizScreen: React.FC = () => {
               <Feather 
                 name="chevron-left" 
                 size={20} 
-                color={currentQuestionIndex === 0 ? Colors.coolGrey : Colors.darkSlate} 
+                color={currentQuestionIndex === 0 ? theme.colors.textSecondary : theme.colors.text} 
               />
               <Text
                 style={[
                   styles.navButtonText,
-                  styles.navButtonTextSecondary,
-                  currentQuestionIndex === 0 && styles.navButtonTextDisabled,
+                  { color: theme.colors.text },
+                  currentQuestionIndex === 0 && { color: theme.colors.textSecondary },
                 ]}
               >
                 Previous
@@ -381,7 +394,7 @@ const QuizScreen: React.FC = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.navButton, styles.navButtonPrimary]}
+              style={[styles.navButton, styles.navButtonPrimary, { backgroundColor: primaryColor }]}
               onPress={handleNext}
               activeOpacity={0.8}
             >
@@ -430,32 +443,32 @@ const QuizScreen: React.FC = () => {
           </Text>
           <View style={styles.resultsStats}>
             <View style={styles.statItem}>
-              <Feather name="clock" size={16} color={Colors.coolGrey} />
-              <Text style={styles.statText}>{timeSpent} min</Text>
+              <Feather name="clock" size={16} color={theme.colors.textSecondary} />
+              <Text style={[styles.statText, { color: theme.colors.text }]}>{timeSpent} min</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Feather name="check-circle" size={16} color={Colors.successGreen} />
-              <Text style={styles.statText}>{correctAnswers} correct</Text>
+              <Feather name="check-circle" size={16} color={theme.colors.success} />
+              <Text style={[styles.statText, { color: theme.colors.text }]}>{correctAnswers} correct</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Feather name="x-circle" size={16} color={Colors.errorRed} />
-              <Text style={styles.statText}>{questions.length - correctAnswers} incorrect</Text>
+              <Feather name="x-circle" size={16} color={theme.colors.error} />
+              <Text style={[styles.statText, { color: theme.colors.text }]}>{questions.length - correctAnswers} incorrect</Text>
             </View>
           </View>
         </View>
 
         {/* Results List */}
         <View style={styles.resultsList}>
-          <Text style={styles.resultsListTitle}>Review Answers</Text>
+          <Text style={[styles.resultsListTitle, { color: theme.colors.text }]}>Review Answers</Text>
           {questions.map((question, index) => {
             const selectedAnswer = selectedAnswers[question.id];
             const isCorrect = selectedAnswer === question.correctAnswer;
             const correctAnswerIndex = question.correctAnswer;
 
             return (
-              <View key={question.id} style={styles.resultCard}>
+              <View key={question.id} style={[styles.resultCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                 <View style={styles.resultQuestionHeader}>
                   <View style={[
                     styles.resultIndicator,
@@ -467,16 +480,17 @@ const QuizScreen: React.FC = () => {
                       color="#FFFFFF"
                     />
                   </View>
-                  <Text style={styles.resultQuestionNumber}>Question {index + 1}</Text>
+                  <Text style={[styles.resultQuestionNumber, { color: theme.colors.textSecondary }]}>Question {index + 1}</Text>
                 </View>
                 
-                <Text style={styles.resultQuestionText}>{question.question}</Text>
+                <Text style={[styles.resultQuestionText, { color: theme.colors.text }]}>{question.question}</Text>
                 
                 <View style={styles.resultAnswerSection}>
                   <View style={styles.answerRow}>
-                    <Text style={styles.resultAnswerLabel}>Your answer:</Text>
+                    <Text style={[styles.resultAnswerLabel, { color: theme.colors.textSecondary }]}>Your answer:</Text>
                     <Text style={[
                       styles.resultAnswerText,
+                      { color: theme.colors.text },
                       !isCorrect && styles.resultAnswerTextIncorrect
                     ]}>
                       {selectedAnswer !== undefined && selectedAnswer < 4
@@ -487,7 +501,7 @@ const QuizScreen: React.FC = () => {
                   
                   {!isCorrect && (
                     <View style={styles.answerRow}>
-                      <Text style={styles.resultAnswerLabel}>Correct answer:</Text>
+                      <Text style={[styles.resultAnswerLabel, { color: theme.colors.textSecondary }]}>Correct answer:</Text>
                       <Text style={[styles.resultAnswerText, styles.resultAnswerTextCorrect]}>
                         {correctAnswerIndex < 4 
                           ? `${String.fromCharCode(65 + correctAnswerIndex)}. ${question.options[correctAnswerIndex]}`
@@ -496,9 +510,9 @@ const QuizScreen: React.FC = () => {
                     </View>
                   )}
                   
-                  <View style={styles.explanationSection}>
-                    <Text style={styles.explanationTitle}>Explanation:</Text>
-                    <Text style={styles.explanationText}>{question.explanation}</Text>
+                  <View style={[styles.explanationSection, { borderTopColor: theme.colors.divider }]}>
+                    <Text style={[styles.explanationTitle, { color: theme.colors.text }]}>Explanation:</Text>
+                    <Text style={[styles.explanationText, { color: theme.colors.text }]}>{question.explanation}</Text>
                   </View>
                 </View>
               </View>
@@ -509,7 +523,7 @@ const QuizScreen: React.FC = () => {
         {/* Action Buttons */}
         <View style={styles.resultsActions}>
           <TouchableOpacity
-            style={styles.doneButton}
+            style={[styles.doneButton, { backgroundColor: primaryColor }]}
             onPress={() => navigation.goBack()}
             activeOpacity={0.8}
           >
@@ -520,20 +534,22 @@ const QuizScreen: React.FC = () => {
     );
   };
 
+  const styles = createStyles(theme);
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.divider }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={handleGoBack}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={24} color={Colors.darkSlate} />
+          <Feather name="arrow-left" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{subjectName}</Text>
-          <Text style={styles.headerSubtitle}>Quick Quiz</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{subjectName}</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>Quick Quiz</Text>
         </View>
         <View style={styles.headerRight} />
       </View>
@@ -543,10 +559,9 @@ const QuizScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   header: {
     flexDirection: 'row',
@@ -554,9 +569,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 20,
-    backgroundColor: Colors.white,
+    backgroundColor: theme.colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.fogGrey,
   },
   backButton: {
     padding: 8,
@@ -568,12 +582,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     marginTop: 2,
   },
@@ -597,7 +609,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   progressSection: {
@@ -615,28 +626,25 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 4,
   },
   answeredText: {
     fontSize: 13,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F3F4F6',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
+    backgroundColor: theme.colors.surface,
   },
   timerText: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   progressBar: {
@@ -647,21 +655,17 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.roseRed,
     borderRadius: 4,
   },
   questionCard: {
-    backgroundColor: Colors.white,
     borderRadius: 20,
     padding: 24,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   questionText: {
     fontSize: 20,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     lineHeight: 28,
   },
@@ -672,12 +676,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.fogGrey,
   },
   sourceNoteText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.roseRed,
     fontFamily: Fonts.semiBold,
   },
   optionsContainer: {
@@ -685,18 +687,15 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   optionCard: {
-    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 18,
-    borderWidth: 2,
-    borderColor: Colors.fogGrey,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   optionCardSelected: {
-    borderColor: Colors.roseRed,
-    backgroundColor: '#FFF5F7',
+    backgroundColor: theme.colors.primaryLight,
   },
   optionContent: {
     flexDirection: 'row',
@@ -707,33 +706,29 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.fogGrey,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
   optionIndicatorSelected: {
-    backgroundColor: Colors.roseRed,
+    // Handled inline
   },
   optionLetter: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   optionLetterSelected: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
   },
   optionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.darkSlate,
     fontFamily: Fonts.semiBold,
     flex: 1,
     lineHeight: 22,
   },
   optionTextSelected: {
-    color: Colors.roseRed,
     fontWeight: '700',
   },
   questionDots: {
@@ -748,16 +743,14 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: Colors.fogGrey,
   },
   dotCurrent: {
-    backgroundColor: Colors.roseRed,
     width: 12,
     height: 12,
     borderRadius: 6,
   },
   dotAnswered: {
-    backgroundColor: Colors.successGreen,
+    // Handled inline
   },
   navigationButtons: {
     flexDirection: 'row',
@@ -773,12 +766,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   navButtonSecondary: {
-    backgroundColor: Colors.white,
     borderWidth: 2,
-    borderColor: Colors.fogGrey,
   },
   navButtonPrimary: {
-    backgroundColor: Colors.roseRed,
+    // Handled inline
   },
   navButtonDisabled: {
     opacity: 0.5,
@@ -789,13 +780,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
   navButtonTextSecondary: {
-    color: Colors.darkSlate,
+    // Handled inline
   },
   navButtonTextPrimary: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
   },
   navButtonTextDisabled: {
-    color: Colors.coolGrey,
+    // Handled inline
   },
   resultsContainer: {
     flex: 1,
@@ -829,18 +820,15 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: '900',
     fontFamily: Fonts.bold,
-    color: Colors.darkSlate,
   },
   resultsTitle: {
     fontSize: 28,
     fontWeight: '900',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 8,
   },
   resultsSubtitle: {
     fontSize: 18,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     marginBottom: 16,
   },
@@ -858,13 +846,12 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.darkSlate,
     fontFamily: Fonts.semiBold,
   },
   statDivider: {
     width: 1,
     height: 20,
-    backgroundColor: Colors.fogGrey,
+    backgroundColor: theme.colors.divider,
   },
   resultsList: {
     marginBottom: 24,
@@ -872,17 +859,14 @@ const styles = StyleSheet.create({
   resultsListTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 16,
   },
   resultCard: {
-    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   resultQuestionHeader: {
     flexDirection: 'row',
@@ -898,21 +882,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resultIndicatorCorrect: {
-    backgroundColor: Colors.successGreen,
+    backgroundColor: theme.colors.success,
   },
   resultIndicatorIncorrect: {
-    backgroundColor: Colors.errorRed,
+    backgroundColor: theme.colors.error,
   },
   resultQuestionNumber: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.coolGrey,
     fontFamily: Fonts.semiBold,
   },
   resultQuestionText: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 16,
     lineHeight: 24,
@@ -926,7 +908,6 @@ const styles = StyleSheet.create({
   resultAnswerLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.coolGrey,
     fontFamily: Fonts.semiBold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -935,32 +916,28 @@ const styles = StyleSheet.create({
   resultAnswerText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.darkSlate,
     fontFamily: Fonts.semiBold,
     lineHeight: 22,
   },
   resultAnswerTextIncorrect: {
-    color: Colors.errorRed,
+    color: theme.colors.error,
   },
   resultAnswerTextCorrect: {
-    color: Colors.successGreen,
+    color: theme.colors.success,
   },
   explanationSection: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.fogGrey,
   },
   explanationTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 6,
   },
   explanationText: {
     fontSize: 14,
-    color: Colors.darkSlate,
     fontFamily: Fonts.regular,
     lineHeight: 20,
   },
@@ -968,7 +945,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   doneButton: {
-    backgroundColor: Colors.roseRed,
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: 'center',

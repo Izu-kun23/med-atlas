@@ -61,13 +61,13 @@ const generateThemeColors = (
       card: '#FFFFFF',
       
       // Text colors
-      text: '#2A2D34',
-      textSecondary: '#5A5F68',
-      textTertiary: '#8A8A8A',
+      text: '#000000',
+      textSecondary: '#666666',
+      textTertiary: '#999999',
       
       // Border colors
-      border: '#E8E9EC',
-      divider: '#E8E9EC',
+      border: '#E5E5E5',
+      divider: '#E5E5E5',
       
       // Semantic colors
       success: '#4CAF50',
@@ -87,7 +87,7 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
-  const [primaryColorOption, setPrimaryColorOptionState] = useState<PrimaryColorOption>('roseRed');
+  const [primaryColorOption, setPrimaryColorOptionState] = useState<PrimaryColorOption>('black');
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Load theme preferences on mount

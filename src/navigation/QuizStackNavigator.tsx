@@ -8,6 +8,7 @@ export type QuizStackParamList = {
   QuizScreen: {
     subjectId: string;
     subjectName: string;
+    subjectColor?: string;
     questions: any[];
   };
 };

@@ -111,7 +111,26 @@ const NoteDetailScreen: React.FC = () => {
             </View>
           )}
         </View>
-        <View style={styles.headerRight} />
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.headerIcon}
+            activeOpacity={0.7}
+            onPress={() => {
+              // Search functionality
+            }}
+          >
+            <Feather name="search" size={20} color={Colors.darkSlate} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerIcon}
+            activeOpacity={0.7}
+            onPress={() => {
+              // Menu functionality
+            }}
+          >
+            <Feather name="more-vertical" size={20} color={Colors.darkSlate} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Note Content */}
@@ -134,6 +153,27 @@ const NoteDetailScreen: React.FC = () => {
         )}
         <Text style={styles.noteTitle}>{note.title}</Text>
         <View style={[styles.divider, { backgroundColor: subjectColor }]} />
+        
+        {/* Metadata Section */}
+        <View style={styles.metadataSection}>
+          <View style={styles.metadataRow}>
+            <Text style={styles.metadataLabel}>Created by</Text>
+            <Text style={styles.metadataValue}>You</Text>
+          </View>
+          {note.createdAt && (
+            <View style={styles.metadataRow}>
+              <Text style={styles.metadataLabel}>Last Modified</Text>
+              <Text style={styles.metadataValue}>
+                {note.createdAt.toDate?.().toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                }) || 'Recently'}
+              </Text>
+            </View>
+          )}
+        </View>
+        
         <View style={styles.noteContent}>
           {renderFormattedContent(note.content)}
         </View>
@@ -172,7 +212,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
   headerRight: {
-    width: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  headerIcon: {
+    padding: 4,
   },
   timerBadge: {
     flexDirection: 'row',
@@ -216,6 +261,49 @@ const styles = StyleSheet.create({
     width: 60,
     borderRadius: 2,
     marginBottom: 24,
+  },
+  metadataSection: {
+    marginTop: 20,
+    marginBottom: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: Colors.fogGrey,
+  },
+  metadataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  metadataLabel: {
+    fontSize: 13,
+    color: Colors.coolGrey,
+    fontFamily: Fonts.regular,
+  },
+  metadataValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.darkSlate,
+    fontFamily: Fonts.semiBold,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  tagBadge: {
+    backgroundColor: Colors.roseLight,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.roseRed,
+    fontFamily: Fonts.semiBold,
   },
   noteContent: {
     marginTop: 8,

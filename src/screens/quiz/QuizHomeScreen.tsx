@@ -15,7 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Fonts } from '../../constants/fonts';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
 import SvgIcon from '../../components/SvgIcon';
 import AnimatedScore from '../../components/AnimatedScore';
 import AnimatedProgressBar from '../../components/AnimatedProgressBar';
@@ -66,7 +66,8 @@ name: string;
 };
 
 const QuizHomeScreen: React.FC = () => {
-const navigation = useNavigation<QuizHomeNavigationProp>();
+  const { theme } = useTheme();
+  const navigation = useNavigation<QuizHomeNavigationProp>();
 const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 const [subjects, setSubjects] = useState<Subject[]>([]);
 const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
@@ -121,9 +122,9 @@ fetchedSubjects.push({
           name: data.name || '',
           quizCount: 0,
           averageScore: 0,
-          color: data.selectedColor || data.color || Colors.roseRed,
-          bgColor: data.bgColor || Colors.roseLight,
-          selectedColor: data.selectedColor || data.color || Colors.roseRed,
+          color: data.selectedColor || data.color || theme.colors.primary,
+          bgColor: data.bgColor || theme.colors.primaryLight,
+          selectedColor: data.selectedColor || data.color || theme.colors.primary,
           selectedIcon: data.selectedIcon || 'folder',
           notesCount: 0,
         });
@@ -596,7 +597,8 @@ console.log('Navigating to quiz screen with', questions.length, 'questions');
 navigation.navigate('QuizScreen', {
         subjectId: selectedSubjectForQuiz.id,
         subjectName: selectedSubjectForQuiz.name,
-questions,
+        subjectColor: selectedSubjectForQuiz.selectedColor || selectedSubjectForQuiz.color,
+        questions,
       });
 
 setGeneratingQuiz(null);
@@ -619,9 +621,9 @@ if (scores.length === 0) {
 return (
 <View style={styles.scoreHistoryContainer}>
 <View style={styles.emptyScoreHistory}>
-<Feather name="bar-chart-2" size={32} color={Colors.coolGrey} />
-<Text style={styles.emptyScoreHistoryText}>No quiz data yet</Text>
-<Text style={styles.emptyScoreHistorySubtext}>Complete quizzes to see your score trend</Text>
+            <Feather name="bar-chart-2" size={32} color={theme.colors.textSecondary} />
+            <Text style={[styles.emptyScoreHistoryText, { color: theme.colors.text }]}>No quiz data yet</Text>
+            <Text style={[styles.emptyScoreHistorySubtext, { color: theme.colors.textSecondary }]}>Complete quizzes to see your score trend</Text>
 </View>
 </View>
       );
@@ -632,11 +634,11 @@ return (
         <View style={styles.scoreBars}>
           {scores.map((score, index) => (
             <View key={`${index}-${animationKey}`} style={styles.scoreBarWrapper}>
-              <View style={styles.scoreBarContainer}>
+              <View style={[styles.scoreBarContainer, { backgroundColor: theme.colors.surface }]}>
                 <AnimatedScoreBar
                   score={score}
                   color={
-                    score >= 80 ? Colors.successGreen : score >= 60 ? Colors.warningAmber : Colors.errorRed
+                    score >= 80 ? theme.colors.success : score >= 60 ? theme.colors.warning : theme.colors.error
                   }
                   duration={1500}
                   delay={index * 100} // Stagger animation
@@ -646,7 +648,7 @@ return (
                 key={`score-label-${index}-${animationKey}`}
                 value={score}
                 suffix="%"
-                style={styles.scoreBarLabel}
+                style={[styles.scoreBarLabel, { color: theme.colors.textSecondary }]}
                 duration={1500}
               />
             </View>
@@ -656,14 +658,16 @@ return (
     );
   };
 
-return (
-<SafeAreaView style={styles.container} edges={['top']}>
+  const styles = createStyles(theme);
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
 <View style={styles.headerSection}>
 <View>
-<Text style={styles.headerTitle}>Quizzes</Text>
-<Text style={styles.headerSubtitle}>
-<Text style={styles.highlight}>{totalQuizzes}</Text> quizzes • <Text style={styles.highlight}>{overallAverage}%</Text> average
-</Text>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Quizzes</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.highlight, { color: theme.colors.text }]}>{totalQuizzes}</Text> quizzes • <Text style={[styles.highlight, { color: theme.colors.text }]}>{overallAverage}%</Text> average
+            </Text>
 </View>
 </View>
 
@@ -681,16 +685,16 @@ showsVerticalScrollIndicator={false}
 </TouchableOpacity>
 </View>
 <View style={styles.challengeIllustration}>
-<Feather name="users" size={80} color={Colors.roseRed} />
+            <Feather name="users" size={100} color={theme.colors.primary} />
 </View>
 </View>
 
 <View style={styles.exploreSection}>
 <View style={styles.exploreSectionHeader}>
-<Text style={styles.exploreSectionTitle}>Explore Quizzes</Text>
-<TouchableOpacity activeOpacity={0.7}>
-<Text style={styles.viewAllText}>VIEW ALL</Text>
-</TouchableOpacity>
+            <Text style={[styles.exploreSectionTitle, { color: theme.colors.text }]}>Explore Quizzes</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+            <Text style={[styles.viewAllText, { color: theme.colors.primary }]}>VIEW ALL</Text>
+            </TouchableOpacity>
 </View>
 
           {isLoadingSubjects ? (
@@ -717,7 +721,7 @@ snapToAlignment="center"
               {subjects.map((subject) => (
 <View key={subject.id} style={styles.quizCardWrapper}>
 <TouchableOpacity
-style={styles.premiumQuizCard}
+style={[styles.premiumQuizCard, { backgroundColor: theme.colors.card }]}
 onPress={() => handleSubjectSelect(subject.id)}
 activeOpacity={0.9}
 >
@@ -741,19 +745,19 @@ color={subject.selectedColor || subject.color}
 />
 </View>
                       
-                      {subject.quizCount > 0 && (
-<View style={styles.completionBadge}>
-<View style={styles.pulseDot} />
-<Text style={styles.completionText}>{subject.quizCount}</Text>
-</View>
+                    {subject.quizCount > 0 && (
+            <View style={styles.completionBadge}>
+            <View style={[styles.pulseDot, { backgroundColor: theme.colors.success }]} />
+            <Text style={[styles.completionText, { color: theme.colors.success }]}>{subject.quizCount}</Text>
+            </View>
                       )}
-</View>
+            </View>
 
                     {/* White Content Section */}
-                    <View style={styles.whiteContentSection}>
+                    <View style={[styles.whiteContentSection, { backgroundColor: theme.colors.card }]}>
                       {/* Subject Name and Start Quiz Button Row */}
                       <View style={styles.subjectNameRow}>
-                        <Text style={styles.subjectName} numberOfLines={2}>
+                        <Text style={[styles.subjectName, { color: theme.colors.text }]} numberOfLines={2}>
                           {subject.name}
                         </Text>
                         <TouchableOpacity
@@ -784,27 +788,27 @@ color={subject.selectedColor || subject.color}
                       
                       {/* Stats Row */}
 <View style={styles.statsContainer}>
-<View style={styles.statBadge}>
-<Feather name="file-text" size={12} color={Colors.coolGrey} />
-<Text style={styles.statBadgeText}>
+<View style={[styles.statBadge, { backgroundColor: theme.colors.surface }]}>
+                    <Feather name="file-text" size={12} color={theme.colors.textSecondary} />
+                    <Text style={[styles.statBadgeText, { color: theme.colors.textSecondary }]}>
                             {subject.notesCount || 0} {subject.notesCount === 1 ? 'note' : 'notes'}
-</Text>
-</View>
+                    </Text>
+                    </View>
                         {subject.averageScore > 0 && (
-                          <View style={[styles.statBadge, styles.scoreBadge]}>
-                            <Feather name="trending-up" size={12} color={Colors.successGreen} />
+                          <View style={[styles.statBadge, styles.scoreBadge, { backgroundColor: theme.colors.success + '20' }]}>
+                            <Feather name="trending-up" size={12} color={theme.colors.success} />
                             <AnimatedScore
                               key={`score-badge-${subject.id}-${animationKey}`}
                               value={subject.averageScore}
                               suffix="%"
-                              style={[styles.statBadgeText, { color: Colors.successGreen }]}
+                              style={[styles.statBadgeText, { color: theme.colors.success }]}
                             />
                           </View>
                         )}
 </View>
                       
                       {/* Divider */}
-<View style={styles.divider} />
+<View style={[styles.divider, { backgroundColor: theme.colors.divider }]} />
                       
                       {/* Quiz Action Section */}
 <View style={styles.quizActionSection}>
@@ -820,38 +824,38 @@ color={subject.selectedColor || subject.color}
 />
 </View>
 <View style={styles.quizInfoText}>
-<Text style={styles.quizActionTitle}>Quick Quiz</Text>
-<Text style={styles.quizActionSubtitle}>AI-generated questions</Text>
-</View>
-</View>
+                    <Text style={[styles.quizActionTitle, { color: theme.colors.text }]}>Quick Quiz</Text>
+                    <Text style={[styles.quizActionSubtitle, { color: theme.colors.textSecondary }]}>AI-generated questions</Text>
+                    </View>
+                    </View>
                         
-<Text style={styles.quizDescription}>
+                    <Text style={[styles.quizDescription, { color: theme.colors.textSecondary }]}>
                           Test your knowledge with personalized questions from your notes
-</Text>
+                    </Text>
                         
                         {/* Performance Stats */}
-<View style={styles.performanceRow}>
-<View style={styles.perfStat}>
-<Text style={styles.perfValue}>{subject.quizCount || 0}</Text>
-<Text style={styles.perfLabel}>Quizzes</Text>
-</View>
-<View style={styles.perfDivider} />
+                    <View style={styles.performanceRow}>
+                    <View style={styles.perfStat}>
+                    <Text style={[styles.perfValue, { color: theme.colors.text }]}>{subject.quizCount || 0}</Text>
+                    <Text style={[styles.perfLabel, { color: theme.colors.textSecondary }]}>Quizzes</Text>
+                    </View>
+                    <View style={styles.perfDivider} />
                             <View style={styles.perfStat}>
                               <AnimatedScore
                                 key={`perf-${subject.id}-${animationKey}`}
                                 value={subject.averageScore || 0}
                                 suffix="%"
-                                style={styles.perfValue}
+                                style={[styles.perfValue, { color: theme.colors.text }]}
                               />
-                              <Text style={styles.perfLabel}>Average</Text>
+                              <Text style={[styles.perfLabel, { color: theme.colors.textSecondary }]}>Average</Text>
                             </View>
-</View>
+                    </View>
                         
                         {/* Progress Bar */}
                         {subject.averageScore > 0 && (
-<View style={styles.progressSection}>
+                    <View style={styles.progressSection}>
                             <View style={styles.progressHeader}>
-                              <Text style={styles.progressLabel}>Performance</Text>
+                              <Text style={[styles.progressLabel, { color: theme.colors.textSecondary }]}>Performance</Text>
                               <AnimatedScore
                                 key={`progress-${subject.id}-${animationKey}`}
                                 value={subject.averageScore}
@@ -878,24 +882,24 @@ color={subject.selectedColor || subject.color}
               ))}
 </ScrollView>
           ) : (
-<View style={styles.emptyState}>
-<Feather name="book-open" size={48} color="#D1D5DB" />
-<Text style={styles.emptyStateTitle}>No subjects found</Text>
-<Text style={styles.emptyStateText}>
+            <View style={styles.emptyState}>
+            <Feather name="book-open" size={48} color={theme.colors.textTertiary} />
+            <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>No subjects found</Text>
+            <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
                 Add subjects and notes to start generating quizzes
-</Text>
-</View>
+            </Text>
+            </View>
           )}
 </View>
 
 <View style={styles.section}>
 <View style={styles.sectionHeader}>
-<Text style={styles.sectionTitle}>Score Trend</Text>
-<TouchableOpacity activeOpacity={0.7}>
-<Text style={styles.seeAllText}>Details</Text>
-</TouchableOpacity>
-</View>
-<View style={styles.scoreHistoryCard}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Score Trend</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+            <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>Details</Text>
+            </TouchableOpacity>
+            </View>
+            <View style={[styles.scoreHistoryCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             {renderScoreHistory()}
 <View style={styles.scoreHistoryStats}>
 <View style={styles.scoreStatItem}>
@@ -905,22 +909,22 @@ color={subject.selectedColor || subject.color}
                               suffix="%"
                               style={styles.scoreStatValue}
                             />
-                            <Text style={styles.scoreStatLabel}>Average</Text>
-</View>
-<View style={styles.scoreStatDivider} />
-<View style={styles.scoreStatItem}>
-<Text style={styles.scoreStatValue}>{totalQuizzes}</Text>
-<Text style={styles.scoreStatLabel}>Total</Text>
-</View>
-<View style={styles.scoreStatDivider} />
+                            <Text style={[styles.scoreStatLabel, { color: theme.colors.textSecondary }]}>Average</Text>
+            </View>
+            <View style={[styles.scoreStatDivider, { backgroundColor: theme.colors.divider }]} />
+            <View style={styles.scoreStatItem}>
+            <Text style={[styles.scoreStatValue, { color: theme.colors.text }]}>{totalQuizzes}</Text>
+            <Text style={[styles.scoreStatLabel, { color: theme.colors.textSecondary }]}>Total</Text>
+            </View>
+            <View style={[styles.scoreStatDivider, { backgroundColor: theme.colors.divider }]} />
                             <View style={styles.scoreStatItem}>
                               <AnimatedScore
                                 key={`best-score-${animationKey}`}
                                 value={recentQuizzes.length > 0 ? Math.max(...recentQuizzes.map((q) => q.score)) : 0}
                                 suffix="%"
-                                style={styles.scoreStatValue}
+                                style={[styles.scoreStatValue, { color: theme.colors.text }]}
                               />
-                              <Text style={styles.scoreStatLabel}>Best</Text>
+                              <Text style={[styles.scoreStatLabel, { color: theme.colors.textSecondary }]}>Best</Text>
                             </View>
 </View>
 </View>
@@ -928,12 +932,12 @@ color={subject.selectedColor || subject.color}
 
 <View style={styles.section}>
 <View style={styles.sectionHeader}>
-<Text style={styles.sectionTitle}>Focus Areas</Text>
-<TouchableOpacity activeOpacity={0.7}>
-<Text style={styles.seeAllText}>All</Text>
-</TouchableOpacity>
-</View>
-<View style={styles.weakTopicsList}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Focus Areas</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+            <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>All</Text>
+            </TouchableOpacity>
+            </View>
+            <View style={styles.weakTopicsList}>
             {isLoadingWeakTopics ? (
               <View style={styles.weakTopicsList}>
                 {[1, 2, 3].map((i) => (
@@ -941,40 +945,40 @@ color={subject.selectedColor || subject.color}
                 ))}
               </View>
             ) : weakTopics.length === 0 ? (
-<View style={styles.emptyState}>
-<Feather name="target" size={48} color="#D1D5DB" />
-<Text style={styles.emptyStateTitle}>No focus areas identified</Text>
-<Text style={styles.emptyStateText}>
+            <View style={styles.emptyState}>
+            <Feather name="target" size={48} color={theme.colors.textTertiary} />
+            <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>No focus areas identified</Text>
+            <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
                   Complete more quizzes to identify areas that need improvement
-</Text>
-</View>
+            </Text>
+            </View>
             ) : (
-weakTopics.map((topic) => (
-<TouchableOpacity
-key={topic.id}
-style={styles.weakTopicCard}
-activeOpacity={0.75}
->
-<View style={styles.weakTopicTop}>
-<View style={styles.weakTopicLeftContent}>
-<Text style={styles.weakTopicSubject}>{topic.subject}</Text>
-<Text style={styles.weakTopicName}>{topic.topic}</Text>
-</View>
-<View style={styles.accuracyBadge}>
-<Text style={styles.accuracyValue}>{topic.accuracy}%</Text>
-</View>
-</View>
-<View style={styles.weakTopicBottom}>
-<View style={styles.attemptsBadge}>
-<Feather name="repeat" size={12} color={Colors.coolGrey} />
-<Text style={styles.attemptsText}>{topic.attempts} attempts</Text>
-</View>
-<TouchableOpacity style={styles.practiceButton} activeOpacity={0.8}>
-<Feather name="play-circle" size={14} color={Colors.roseRed} />
-<Text style={styles.practiceButtonText}>Practice</Text>
-</TouchableOpacity>
-</View>
-</TouchableOpacity>
+            weakTopics.map((topic) => (
+            <TouchableOpacity
+            key={topic.id}
+            style={[styles.weakTopicCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+            activeOpacity={0.75}
+            >
+            <View style={styles.weakTopicTop}>
+            <View style={styles.weakTopicLeftContent}>
+            <Text style={[styles.weakTopicSubject, { color: theme.colors.textSecondary }]}>{topic.subject}</Text>
+            <Text style={[styles.weakTopicName, { color: theme.colors.text }]}>{topic.topic}</Text>
+            </View>
+            <View style={[styles.accuracyBadge, { backgroundColor: theme.colors.error + '20' }]}>
+            <Text style={[styles.accuracyValue, { color: theme.colors.error }]}>{topic.accuracy}%</Text>
+            </View>
+            </View>
+            <View style={styles.weakTopicBottom}>
+            <View style={[styles.attemptsBadge, { backgroundColor: theme.colors.surface }]}>
+                    <Feather name="repeat" size={12} color={theme.colors.textSecondary} />
+            <Text style={[styles.attemptsText, { color: theme.colors.textSecondary }]}>{topic.attempts} attempts</Text>
+            </View>
+            <TouchableOpacity style={[styles.practiceButton, { backgroundColor: theme.colors.primaryLight }]} activeOpacity={0.8}>
+                    <Feather name="play-circle" size={14} color={theme.colors.primary} />
+            <Text style={[styles.practiceButtonText, { color: theme.colors.primary }]}>Practice</Text>
+            </TouchableOpacity>
+            </View>
+            </TouchableOpacity>
               ))
             )}
 </View>
@@ -982,12 +986,12 @@ activeOpacity={0.75}
 
 <View style={styles.section}>
 <View style={styles.sectionHeader}>
-<Text style={styles.sectionTitle}>Recent Activity</Text>
-<TouchableOpacity activeOpacity={0.7}>
-<Text style={styles.seeAllText}>History</Text>
-</TouchableOpacity>
-</View>
-<View style={styles.recentQuizzesList}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Recent Activity</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+            <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>History</Text>
+            </TouchableOpacity>
+            </View>
+            <View style={styles.recentQuizzesList}>
             {isLoadingQuizzes ? (
               <View style={styles.scoreHistoryContainer}>
                 <View style={styles.scoreBars}>
@@ -998,31 +1002,31 @@ activeOpacity={0.75}
               </View>
             ) : recentQuizzes.length === 0 ? (
 <View style={styles.emptyState}>
-<Feather name="clipboard" size={48} color="#D1D5DB" />
-<Text style={styles.emptyStateTitle}>No quizzes yet</Text>
-<Text style={styles.emptyStateText}>
+<Feather name="clipboard" size={48} color={theme.colors.textTertiary} />
+<Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>No quizzes yet</Text>
+<Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
                   Complete your first quiz to see it here
 </Text>
 </View>
             ) : (
 recentQuizzes.map((quiz) => (
 <TouchableOpacity
-key={quiz.id}
-style={styles.recentQuizCard}
-activeOpacity={0.75}
->
+            key={quiz.id}
+            style={[styles.recentQuizCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+            activeOpacity={0.75}
+            >
 <View style={styles.recentQuizLeft}>
 <View style={styles.recentQuizInfo}>
-<Text style={styles.recentQuizSubject}>{quiz.subject}</Text>
+<Text style={[styles.recentQuizSubject, { color: theme.colors.text }]}>{quiz.subject}</Text>
 <View style={styles.quizMetaRow}>
 <View style={styles.metaItem}>
-<Feather name="help-circle" size={12} color={Colors.coolGrey} />
-<Text style={styles.metaText}>{quiz.totalQuestions} Q</Text>
-</View>
-<View style={styles.metaDot} />
-<View style={styles.metaItem}>
-<Feather name="clock" size={12} color={Colors.coolGrey} />
-<Text style={styles.metaText}>{quiz.timeSpent}m</Text>
+                    <Feather name="help-circle" size={12} color={theme.colors.textSecondary} />
+                    <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{quiz.totalQuestions} Q</Text>
+                    </View>
+                    <View style={[styles.metaDot, { backgroundColor: theme.colors.border }]} />
+                    <View style={styles.metaItem}>
+                    <Feather name="clock" size={12} color={theme.colors.textSecondary} />
+                    <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{quiz.timeSpent}m</Text>
 </View>
 </View>
 </View>
@@ -1046,10 +1050,10 @@ styles.scoreDisplay,
                         {
                           color:
 quiz.score >= 80
-? Colors.successGreen
+? theme.colors.success
 : quiz.score >= 60
-? Colors.warningAmber
-: Colors.errorRed,
+? theme.colors.warning
+: theme.colors.error,
                         },
                       ]}
 >
@@ -1075,9 +1079,9 @@ setSelectedWeek(null);
         }}
 >
 <View style={styles.modalOverlay}>
-<View style={styles.modalContent}>
-<View style={styles.modalHeader}>
-<Text style={styles.modalTitle}>Select Quiz Options</Text>
+<View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+<View style={[styles.modalHeader, { borderBottomColor: theme.colors.divider }]}>
+<Text style={[styles.modalTitle, { color: theme.colors.text }]}>Select Quiz Options</Text>
 <TouchableOpacity
 onPress={() => {
 setShowFolderModal(false);
@@ -1087,41 +1091,43 @@ setSelectedWeek(null);
                 }}
 style={styles.modalCloseButton}
 >
-<Feather name="x" size={24} color={Colors.darkSlate} />
-</TouchableOpacity>
-</View>
-<Text style={styles.modalSubtitle}>
+            <Feather name="x" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+            </View>
+            <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>
               Choose folder and week for {selectedSubjectForQuiz?.name}
-</Text>
+            </Text>
             {isLoadingFolders ? (
-<View style={styles.modalLoadingContainer}>
-<ActivityIndicator size="large" color={Colors.roseRed} />
-<Text style={styles.modalLoadingText}>Loading options...</Text>
+            <View style={styles.modalLoadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={[styles.modalLoadingText, { color: theme.colors.textSecondary }]}>Loading options...</Text>
 </View>
             ) : (
 <ScrollView style={styles.modalFolderList} showsVerticalScrollIndicator={false}>
 <View style={styles.selectionSection}>
-<Text style={styles.selectionSectionTitle}>Select Folder</Text>
-<TouchableOpacity
-style={[
-styles.folderOption,
-selectedFolderId === null && styles.folderOptionSelected
+            <Text style={[styles.selectionSectionTitle, { color: theme.colors.text }]}>Select Folder</Text>
+            <TouchableOpacity
+            style={[
+            styles.folderOption,
+            { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+            selectedFolderId === null && [styles.folderOptionSelected, { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryLight }]
                     ]}
-onPress={() => setSelectedFolderId(null)}
-activeOpacity={0.7}
->
-<View style={[
-styles.folderOptionIcon,
-selectedFolderId === null && styles.folderOptionIconSelected
+            onPress={() => setSelectedFolderId(null)}
+            activeOpacity={0.7}
+            >
+            <View style={[
+            styles.folderOptionIcon,
+            { backgroundColor: theme.colors.surface },
+            selectedFolderId === null && [styles.folderOptionIconSelected, { backgroundColor: theme.colors.primary }]
                     ]}>
-<Feather name="folder" size={24} color={selectedFolderId === null ? Colors.white : Colors.roseRed} />
-</View>
-<View style={styles.folderOptionContent}>
-<Text style={styles.folderOptionName}>All Notes</Text>
-<Text style={styles.folderOptionDescription}>Quiz from all notes in this subject</Text>
-</View>
+            <Feather name="folder" size={24} color={selectedFolderId === null ? theme.colors.white : theme.colors.primary} />
+            </View>
+            <View style={styles.folderOptionContent}>
+            <Text style={[styles.folderOptionName, { color: theme.colors.text }]}>All Notes</Text>
+            <Text style={[styles.folderOptionDescription, { color: theme.colors.textSecondary }]}>Quiz from all notes in this subject</Text>
+            </View>
                     {selectedFolderId === null && (
-<Feather name="check-circle" size={20} color={Colors.roseRed} />
+            <Feather name="check-circle" size={20} color={theme.colors.primary} />
                     )}
 </TouchableOpacity>
                   {folders.map((folder) => (
@@ -1129,56 +1135,60 @@ selectedFolderId === null && styles.folderOptionIconSelected
 key={folder.id}
 style={[
 styles.folderOption,
-selectedFolderId === folder.id && styles.folderOptionSelected
+{ backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+selectedFolderId === folder.id && [styles.folderOptionSelected, { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryLight }]
                       ]}
 onPress={() => setSelectedFolderId(folder.id)}
 activeOpacity={0.7}
 >
 <View style={[
 styles.folderOptionIcon,
-selectedFolderId === folder.id && styles.folderOptionIconSelected
+{ backgroundColor: theme.colors.surface },
+selectedFolderId === folder.id && [styles.folderOptionIconSelected, { backgroundColor: theme.colors.primary }]
                       ]}>
-<Feather 
-name="folder" 
-size={24} 
-color={selectedFolderId === folder.id 
-? Colors.white 
-: (selectedSubjectForQuiz?.selectedColor || selectedSubjectForQuiz?.color || Colors.roseRed)} 
-/>
-</View>
-<View style={styles.folderOptionContent}>
-<Text style={styles.folderOptionName}>{folder.name}</Text>
-<Text style={styles.folderOptionDescription}>Quiz from notes in this folder</Text>
-</View>
+            <Feather 
+            name="folder" 
+            size={24} 
+            color={selectedFolderId === folder.id 
+            ? theme.colors.white 
+            : (selectedSubjectForQuiz?.selectedColor || selectedSubjectForQuiz?.color || theme.colors.primary)} 
+            />
+            </View>
+            <View style={styles.folderOptionContent}>
+            <Text style={[styles.folderOptionName, { color: theme.colors.text }]}>{folder.name}</Text>
+            <Text style={[styles.folderOptionDescription, { color: theme.colors.textSecondary }]}>Quiz from notes in this folder</Text>
+            </View>
                       {selectedFolderId === folder.id && (
-<Feather name="check-circle" size={20} color={Colors.roseRed} />
+            <Feather name="check-circle" size={20} color={theme.colors.primary} />
                       )}
 </TouchableOpacity>
                   ))}
 </View>
 
 <View style={styles.selectionSection}>
-<Text style={styles.selectionSectionTitle}>Select Week</Text>
-<TouchableOpacity
-style={[
-styles.folderOption,
-selectedWeek === null && styles.folderOptionSelected
+            <Text style={[styles.selectionSectionTitle, { color: theme.colors.text }]}>Select Week</Text>
+            <TouchableOpacity
+            style={[
+            styles.folderOption,
+            { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+            selectedWeek === null && [styles.folderOptionSelected, { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryLight }]
                     ]}
-onPress={() => setSelectedWeek(null)}
-activeOpacity={0.7}
->
-<View style={[
-styles.folderOptionIcon,
-selectedWeek === null && styles.folderOptionIconSelected
+            onPress={() => setSelectedWeek(null)}
+            activeOpacity={0.7}
+            >
+            <View style={[
+            styles.folderOptionIcon,
+            { backgroundColor: theme.colors.surface },
+            selectedWeek === null && [styles.folderOptionIconSelected, { backgroundColor: theme.colors.primary }]
                     ]}>
-<Feather name="calendar" size={24} color={selectedWeek === null ? Colors.white : Colors.roseRed} />
-</View>
-<View style={styles.folderOptionContent}>
-<Text style={styles.folderOptionName}>All Weeks</Text>
-<Text style={styles.folderOptionDescription}>Quiz from all weeks</Text>
-</View>
+            <Feather name="calendar" size={24} color={selectedWeek === null ? theme.colors.white : theme.colors.primary} />
+            </View>
+            <View style={styles.folderOptionContent}>
+            <Text style={[styles.folderOptionName, { color: theme.colors.text }]}>All Weeks</Text>
+            <Text style={[styles.folderOptionDescription, { color: theme.colors.textSecondary }]}>Quiz from all weeks</Text>
+            </View>
                     {selectedWeek === null && (
-<Feather name="check-circle" size={20} color={Colors.roseRed} />
+            <Feather name="check-circle" size={20} color={theme.colors.primary} />
                     )}
 </TouchableOpacity>
                   {weeks.map((week) => (
@@ -1186,51 +1196,53 @@ selectedWeek === null && styles.folderOptionIconSelected
 key={week}
 style={[
 styles.folderOption,
-selectedWeek === week && styles.folderOptionSelected
+{ backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+selectedWeek === week && [styles.folderOptionSelected, { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryLight }]
                       ]}
 onPress={() => setSelectedWeek(week)}
 activeOpacity={0.7}
 >
 <View style={[
 styles.folderOptionIcon,
-selectedWeek === week && styles.folderOptionIconSelected
+{ backgroundColor: theme.colors.surface },
+selectedWeek === week && [styles.folderOptionIconSelected, { backgroundColor: theme.colors.primary }]
                       ]}>
-<Feather 
-name="calendar" 
-size={24} 
-color={selectedWeek === week 
-? Colors.white 
-: (selectedSubjectForQuiz?.selectedColor || selectedSubjectForQuiz?.color || Colors.roseRed)} 
-/>
-</View>
-<View style={styles.folderOptionContent}>
-<Text style={styles.folderOptionName}>{week}</Text>
-<Text style={styles.folderOptionDescription}>Quiz from notes in this week</Text>
-</View>
+            <Feather 
+            name="calendar" 
+            size={24} 
+            color={selectedWeek === week 
+            ? theme.colors.white 
+            : (selectedSubjectForQuiz?.selectedColor || selectedSubjectForQuiz?.color || theme.colors.primary)} 
+            />
+            </View>
+            <View style={styles.folderOptionContent}>
+            <Text style={[styles.folderOptionName, { color: theme.colors.text }]}>{week}</Text>
+            <Text style={[styles.folderOptionDescription, { color: theme.colors.textSecondary }]}>Quiz from notes in this week</Text>
+            </View>
                       {selectedWeek === week && (
-<Feather name="check-circle" size={20} color={Colors.roseRed} />
+            <Feather name="check-circle" size={20} color={theme.colors.primary} />
                       )}
 </TouchableOpacity>
                   ))}
                   {weeks.length === 0 && (
 <View style={styles.modalEmptyState}>
-<Feather name="calendar" size={48} color="#D1D5DB" />
-<Text style={styles.modalEmptyText}>No weeks found</Text>
-<Text style={styles.modalEmptySubtext}>
+<Feather name="calendar" size={48} color={theme.colors.textTertiary} />
+            <Text style={[styles.modalEmptyText, { color: theme.colors.text }]}>No weeks found</Text>
+            <Text style={[styles.modalEmptySubtext, { color: theme.colors.textSecondary }]}>
                         Select "All Weeks" to quiz from all notes
-</Text>
+            </Text>
 </View>
                   )}
 </View>
 
 <TouchableOpacity
-style={styles.startQuizButton}
-onPress={handleStartQuiz}
-activeOpacity={0.8}
->
-<Text style={styles.startQuizButtonText}>Start Quiz</Text>
-<Feather name="arrow-right" size={20} color="#FFFFFF" />
-</TouchableOpacity>
+            style={[styles.startQuizButton, { backgroundColor: theme.colors.primary }]}
+            onPress={handleStartQuiz}
+            activeOpacity={0.8}
+            >
+            <Text style={styles.startQuizButtonText}>Start Quiz</Text>
+            <Feather name="arrow-right" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
 </ScrollView>
             )}
 </View>
@@ -1240,10 +1252,9 @@ activeOpacity={0.8}
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   scrollView: {
     flex: 1,
@@ -1259,61 +1270,59 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 40,
     fontWeight: '900',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 6,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   highlight: {
     fontWeight: '800',
-    color: Colors.darkSlate,
   },
   challengeBanner: {
     flexDirection: 'row',
     backgroundColor: '#2D2E4F',
     marginHorizontal: 20,
     marginTop: 20,
-    marginBottom: 28,
+    marginBottom: 20,
     borderRadius: 24,
-    padding: 24,
+    padding: 32,
     alignItems: 'center',
     overflow: 'hidden',
+    minHeight: 180,
   },
   challengeContent: {
     flex: 1,
   },
   challengeTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '900',
     color: '#FFFFFF',
     fontFamily: Fonts.bold,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   challengeSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     fontFamily: Fonts.regular,
-    marginBottom: 14,
+    marginBottom: 18,
   },
   challengeButton: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
     alignSelf: 'flex-start',
   },
   challengeButtonText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
     color: '#2D2E4F',
     fontFamily: Fonts.bold,
   },
   challengeIllustration: {
-    marginLeft: 16,
+    marginLeft: 20,
     opacity: 0.3,
   },
   exploreSection: {
@@ -1329,13 +1338,11 @@ const styles = StyleSheet.create({
   exploreSectionTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   viewAllText: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.roseRed,
     fontFamily: Fonts.bold,
     letterSpacing: 0.5,
   },
@@ -1351,8 +1358,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 480,
     backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    borderRadius: 24,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
   },
   decorativeGradient: {
     position: 'absolute',
@@ -1417,12 +1426,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.successGreen,
   },
   completionText: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.successGreen,
     fontFamily: Fonts.bold,
   },
   whiteContentSection: {
@@ -1444,7 +1451,6 @@ const styles = StyleSheet.create({
   subjectName: {
     fontSize: 24,
     fontWeight: '900',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     lineHeight: 30,
     flex: 1,
@@ -1457,24 +1463,21 @@ const styles = StyleSheet.create({
   statBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     gap: 6,
   },
   scoreBadge: {
-    backgroundColor: '#ECFDF5',
+    // Handled inline
   },
   statBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.coolGrey,
     fontFamily: Fonts.bold,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
     marginBottom: 20,
   },
   quizActionSection: {
@@ -1498,25 +1501,21 @@ const styles = StyleSheet.create({
   quizActionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 3,
   },
   quizActionSubtitle: {
     fontSize: 12,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   quizDescription: {
     fontSize: 13,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     lineHeight: 19,
   },
   performanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
     borderRadius: 18,
     padding: 18,
     gap: 24,
@@ -1528,13 +1527,11 @@ const styles = StyleSheet.create({
   perfValue: {
     fontSize: 24,
     fontWeight: '900',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 4,
   },
   perfLabel: {
     fontSize: 11,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1542,7 +1539,6 @@ const styles = StyleSheet.create({
   perfDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#E5E7EB',
   },
   startQuizBtn: {
     flexDirection: 'row',
@@ -1593,7 +1589,6 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.coolGrey,
     fontFamily: Fonts.bold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1622,7 +1617,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   emptyState: {
@@ -1635,14 +1629,12 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     textAlign: 'center',
   },
@@ -1659,13 +1651,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   seeAllText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Colors.roseRed,
     fontFamily: Fonts.bold,
     letterSpacing: 0.3,
   },
@@ -1695,7 +1685,6 @@ const styles = StyleSheet.create({
   scoreBarContainer: {
     width: 40,
     height: 110,
-    backgroundColor: '#F3F4F6',
     borderRadius: 18,
     justifyContent: 'flex-end',
     overflow: 'hidden',
@@ -1708,7 +1697,6 @@ const styles = StyleSheet.create({
   scoreBarLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.coolGrey,
     fontFamily: Fonts.bold,
   },
   emptyScoreHistory: {
@@ -1719,14 +1707,12 @@ const styles = StyleSheet.create({
   emptyScoreHistoryText: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginTop: 12,
     marginBottom: 4,
   },
   emptyScoreHistorySubtext: {
     fontSize: 13,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     textAlign: 'center',
   },
@@ -1743,20 +1729,17 @@ const styles = StyleSheet.create({
   scoreStatValue: {
     fontSize: 26,
     fontWeight: '900',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 4,
   },
   scoreStatLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.coolGrey,
     fontFamily: Fonts.semiBold,
   },
   scoreStatDivider: {
     width: 1,
     height: 44,
-    backgroundColor: '#E5E7EB',
   },
   weakTopicsList: {
     paddingHorizontal: 20,
@@ -1781,7 +1764,6 @@ const styles = StyleSheet.create({
   weakTopicSubject: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.coolGrey,
     fontFamily: Fonts.semiBold,
     marginBottom: 4,
     textTransform: 'uppercase',
@@ -1790,11 +1772,9 @@ const styles = StyleSheet.create({
   weakTopicName: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   accuracyBadge: {
-    backgroundColor: '#FEF2F2',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -1802,7 +1782,6 @@ const styles = StyleSheet.create({
   accuracyValue: {
     fontSize: 14,
     fontWeight: '900',
-    color: Colors.errorRed,
     fontFamily: Fonts.bold,
   },
   weakTopicBottom: {
@@ -1822,13 +1801,11 @@ const styles = StyleSheet.create({
   attemptsText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.coolGrey,
     fontFamily: Fonts.semiBold,
   },
   practiceButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFE9E3',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -1837,7 +1814,6 @@ const styles = StyleSheet.create({
   practiceButtonText: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.roseRed,
     fontFamily: Fonts.bold,
   },
   recentQuizzesList: {
@@ -1845,14 +1821,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   recentQuizCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 18,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
   recentQuizLeft: {
     flex: 1,
@@ -1863,7 +1837,6 @@ const styles = StyleSheet.create({
   recentQuizSubject: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   quizMetaRow: {
@@ -1879,14 +1852,12 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.coolGrey,
     fontFamily: Fonts.semiBold,
   },
   metaDot: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: Colors.fogGrey,
   },
   scoreDisplayBadge: {
     borderRadius: 14,
@@ -1906,7 +1877,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '80%',
@@ -1920,12 +1890,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.fogGrey,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
   },
   modalCloseButton: {
@@ -1933,7 +1901,6 @@ const styles = StyleSheet.create({
   },
   modalSubtitle: {
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -1947,7 +1914,6 @@ const styles = StyleSheet.create({
   modalLoadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   modalFolderList: {
@@ -1958,11 +1924,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: Colors.white,
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
   folderOptionIcon: {
     width: 48,
@@ -1979,13 +1943,11 @@ const styles = StyleSheet.create({
   folderOptionName: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 4,
   },
   folderOptionDescription: {
     fontSize: 13,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
   modalEmptyState: {
@@ -1997,14 +1959,12 @@ const styles = StyleSheet.create({
   modalEmptyText: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginTop: 16,
     marginBottom: 8,
   },
   modalEmptySubtext: {
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     textAlign: 'center',
   },
@@ -2014,23 +1974,20 @@ const styles = StyleSheet.create({
   selectionSectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: Colors.darkSlate,
     fontFamily: Fonts.bold,
     marginBottom: 16,
     paddingHorizontal: 4,
   },
   folderOptionSelected: {
-    borderColor: Colors.roseRed,
-    backgroundColor: '#FFF5F7',
+    // Handled inline
   },
   folderOptionIconSelected: {
-    backgroundColor: Colors.roseRed,
+    // Handled inline
   },
   startQuizButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.roseRed,
     borderRadius: 16,
     paddingVertical: 18,
     marginTop: 24,

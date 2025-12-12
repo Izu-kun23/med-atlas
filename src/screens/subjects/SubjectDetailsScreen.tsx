@@ -7,6 +7,7 @@ import {
   FlatList,
   ScrollView,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -17,6 +18,10 @@ import { Colors } from '../../constants/colors';
 import { SubjectsStackParamList } from '../../navigation/SubjectsStackNavigator';
 import { db, auth } from '../../lib/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_MARGIN = 12;
+const CARD_WIDTH = (SCREEN_WIDTH - 60 - CARD_MARGIN) / 2; // Account for padding and gap
 
 type Note = {
   id: string;
@@ -401,32 +406,22 @@ const SubjectDetailsScreen: React.FC = () => {
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: subjectBgColor }]}
+            style={styles.headerIconButton}
             activeOpacity={0.7}
             onPress={() => {
-              navigation.navigate('AddFolder', {
-                subjectId,
-                subjectName,
-                subjectColor,
-                subjectBgColor,
-              });
+              // Search functionality
             }}
           >
-            <Feather name="folder-plus" size={20} color={subjectColor} />
+            <Feather name="search" size={20} color={Colors.darkSlate} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.addNoteButton}
+            style={styles.headerIconButton}
             activeOpacity={0.7}
             onPress={() => {
-              navigation.navigate('AddNote', {
-                subjectId,
-                subjectName,
-                subjectColor,
-                subjectBgColor,
-              });
+              // Menu functionality
             }}
           >
-            <Feather name="plus" size={24} color={Colors.white} />
+            <Feather name="more-vertical" size={20} color={Colors.darkSlate} />
           </TouchableOpacity>
         </View>
       </View>
@@ -514,13 +509,15 @@ const SubjectDetailsScreen: React.FC = () => {
                             </TouchableOpacity>
 
                             {isWeekExpanded && (
-                              <View style={styles.notesContainer}>
-                                {weekNotes.map((note) => (
-                                  <React.Fragment key={note.id}>
-                                    {renderNoteCard({ item: note })}
-                                  </React.Fragment>
-                                ))}
-                              </View>
+                              <FlatList
+                                data={weekNotes}
+                                renderItem={renderNoteCard}
+                                keyExtractor={(item) => item.id}
+                                numColumns={2}
+                                columnWrapperStyle={styles.notesGridRow}
+                                contentContainerStyle={styles.notesContainer}
+                                scrollEnabled={false}
+                              />
                             )}
                           </View>
                         );
@@ -676,7 +673,14 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerButton: {
     width: 40,
@@ -688,7 +692,7 @@ const styles = StyleSheet.create({
   folderGroup: {
     marginBottom: 16,
     backgroundColor: Colors.white,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.fogGrey,
     overflow: 'hidden',
@@ -748,12 +752,16 @@ const styles = StyleSheet.create({
   },
   notesContainer: {
     paddingLeft: 20,
-    gap: 12,
+    paddingRight: 20,
+  },
+  notesGridRow: {
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   deletedSection: {
     marginTop: 24,
     backgroundColor: Colors.white,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#FEE2E2',
     overflow: 'hidden',
@@ -836,9 +844,9 @@ const styles = StyleSheet.create({
   },
   noteCard: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 18,
+    padding: 18,
+    width: CARD_WIDTH,
     borderWidth: 1,
     borderColor: Colors.fogGrey,
   },
@@ -865,7 +873,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.roseLight,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
     gap: 4,
@@ -946,7 +954,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingVertical: 16,
     gap: 8,
   },
   emptyStateButtonText: {

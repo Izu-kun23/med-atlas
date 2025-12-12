@@ -7,9 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   FlatList,
-  TextInput,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -17,6 +15,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Feather } from '@expo/vector-icons';
 import { Fonts } from '../../constants/fonts';
 import { Colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
 import { SubjectsStackParamList } from '../../navigation/SubjectsStackNavigator';
 import TabBar from '../../components/TabBar';
 import { db, auth } from '../../lib/firebase';
@@ -46,11 +45,14 @@ type SubjectsScreenNavigationProp = StackNavigationProp<SubjectsStackParamList, 
 
 const SubjectsScreen: React.FC = () => {
   const navigation = useNavigation<SubjectsScreenNavigationProp>();
+  const { theme } = useTheme();
   const [isIntern] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  
+  const styles = createStyles(theme);
 
   const fetchSubjects = async () => {
     const user = auth.currentUser;
@@ -130,73 +132,38 @@ const SubjectsScreen: React.FC = () => {
         });
       }}
     >
-      {item.coverPhotoUrl ? (
-        <View style={styles.coverPhotoWrapper}>
-          <Image source={{ uri: item.coverPhotoUrl }} style={styles.coverPhoto} />
-          <View style={styles.coverOverlay} />
-        </View>
-      ) : (
-        <View style={[styles.gradientBackground, { backgroundColor: item.bgColor }]}>
-          <View style={styles.decorativeCircle1} />
-          <View style={styles.decorativeCircle2} />
-        </View>
-      )}
-      
-      <View style={styles.cardContent}>
-        <View style={[styles.iconBadge, { backgroundColor: 'rgba(255, 255, 255, 0.95)' }]}>
-          <Feather 
-            name={(item.selectedIcon || 'folder') as any} 
-            size={24} 
-            color={item.selectedColor || item.color} 
-          />
-        </View>
-        
-        <Text style={styles.subjectName} numberOfLines={2}>
-          {item.name}
-        </Text>
-        
-        {(item.notesCount > 0 || item.studySessionsCount > 0) && (
-          <View style={styles.statsContainer}>
-            {item.notesCount > 0 && (
-              <View style={styles.statBadge}>
-                <Feather name="file-text" size={12} color={item.selectedColor || item.color} />
-                <Text style={[styles.statText, { color: item.selectedColor || item.color }]}>
-                  {item.notesCount}
-                </Text>
-              </View>
-            )}
-            {item.studySessionsCount > 0 && (
-              <View style={styles.statBadge}>
-                <Feather name="clock" size={12} color={item.selectedColor || item.color} />
-                <Text style={[styles.statText, { color: item.selectedColor || item.color }]}>
-                  {item.studySessionsCount}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
+      <View style={styles.cardIconContainer}>
+        <Feather 
+          name={(item.selectedIcon || 'folder') as any} 
+          size={32} 
+          color={theme.colors.text} 
+        />
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>{isIntern ? 'Rotations' : 'Subjects'}</Text>
-          <Text style={styles.headerSubtitle}>
-            {filteredSubjects.length} {filteredSubjects.length === 1 ? 'subject' : 'subjects'}
-          </Text>
+        <View style={styles.headerLeft}>
+          <View style={[styles.profileAvatar, { backgroundColor: theme.colors.primary }]}>
+            <Text style={styles.profileAvatarText}>U</Text>
+          </View>
+          <View>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{isIntern ? 'Rotations' : 'Subjects'}</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
+              {filteredSubjects.length} {filteredSubjects.length === 1 ? 'subject' : 'subjects'}
+            </Text>
+          </View>
         </View>
-        <TouchableOpacity
-          style={styles.addButton}
-          activeOpacity={0.7}
-          onPress={() => {
-            navigation.navigate('AddSubject');
-          }}
-        >
-          <Feather name="plus" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity activeOpacity={0.7} style={styles.headerIcon}>
+            <Feather name="search" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.7} style={styles.headerIcon}>
+            <Feather name="more-vertical" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -208,41 +175,18 @@ const SubjectsScreen: React.FC = () => {
         <View style={styles.tabSection}>
           <TabBar
             tabs={[
-              { id: 'all', label: 'All' },
-              { id: 'recent', label: 'Recent' },
-              { id: 'favorites', label: 'Favorites' },
+              { id: 'all', label: 'All Notes' },
+              { id: 'recent', label: 'Folders' },
             ]}
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />
         </View>
 
-        <View style={styles.searchContainer}>
-          <Feather name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search subjects..."
-            placeholderTextColor="#9CA3AF"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              style={styles.clearButton}
-              activeOpacity={0.7}
-            >
-              <Feather name="x" size={18} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-        </View>
-
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.roseRed} />
-            <Text style={styles.loadingText}>Loading subjects...</Text>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Loading subjects...</Text>
           </View>
         ) : filteredSubjects.length > 0 ? (
           <FlatList
@@ -256,14 +200,14 @@ const SubjectsScreen: React.FC = () => {
           />
         ) : (
           <View style={styles.emptyState}>
-            <Feather name="book-open" size={48} color="#D1D5DB" />
-            <Text style={styles.emptyStateTitle}>No subjects found</Text>
-            <Text style={styles.emptyStateText}>
+            <Feather name="book-open" size={48} color={theme.colors.textTertiary} />
+            <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>No subjects found</Text>
+            <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
               {searchQuery ? 'Try a different search term' : 'Add your first subject to get started'}
             </Text>
             {!searchQuery && (
               <TouchableOpacity
-                style={styles.emptyStateButton}
+                style={[styles.emptyStateButton, { backgroundColor: theme.colors.primary }]}
                 activeOpacity={0.8}
                 onPress={() => navigation.navigate('AddSubject')}
               >
@@ -278,38 +222,54 @@ const SubjectsScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 20,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: Colors.darkSlate,
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  headerIcon: {
+    padding: 4,
+  },
+  profileAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatarText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
     fontFamily: Fonts.bold,
-    marginBottom: 4,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    fontFamily: Fonts.bold,
+    marginBottom: 2,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: Colors.coolGrey,
+    fontSize: 13,
     fontFamily: Fonts.regular,
-  },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 28,
-    backgroundColor: Colors.roseRed,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
@@ -321,32 +281,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 16,
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginHorizontal: 24,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: Colors.fogGrey,
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.darkSlate,
-    fontFamily: Fonts.regular,
-    padding: 0,
-  },
-  clearButton: {
-    padding: 4,
-    marginLeft: 8,
-  },
   gridContainer: {
     paddingHorizontal: CARD_MARGIN,
     paddingBottom: 24,
@@ -357,111 +291,17 @@ const styles = StyleSheet.create({
   },
   subjectCard: {
     width: CARD_WIDTH,
-    height: 200,
-    backgroundColor: Colors.white,
-    borderRadius: 28,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.fogGrey,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  gradientBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-    overflow: 'hidden',
-  },
-  decorativeCircle1: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    top: -30,
-    right: -20,
-  },
-  decorativeCircle2: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    bottom: 10,
-    left: -10,
-  },
-  coverPhotoWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-  },
-  coverPhoto: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  coverOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-  },
-  cardContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    minHeight: 96,
-  },
-  iconBadge: {
-    width: 48,
-    height: 48,
+    height: CARD_WIDTH,
+    backgroundColor: theme.colors.card,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: Colors.fogGrey,
   },
-  subjectName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.darkSlate,
-    fontFamily: Fonts.bold,
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  statBadge: {
-    flexDirection: 'row',
+  cardIconContainer: {
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 16,
-  },
-  statText: {
-    fontSize: 11,
-    fontWeight: '600',
-    fontFamily: Fonts.semiBold,
   },
   emptyState: {
     alignItems: 'center',
@@ -470,16 +310,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.darkSlate,
-    fontFamily: Fonts.semiBold,
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: Fonts.bold,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
     textAlign: 'center',
     marginBottom: 24,
@@ -487,17 +325,16 @@ const styles = StyleSheet.create({
   emptyStateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.roseRed,
-    borderRadius: 24,
+    borderRadius: 16,
     paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingVertical: 14,
     gap: 8,
   },
   emptyStateButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.white,
-    fontFamily: Fonts.semiBold,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontFamily: Fonts.bold,
   },
   loadingContainer: {
     flex: 1,
@@ -508,7 +345,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: Colors.coolGrey,
     fontFamily: Fonts.regular,
   },
 });
